@@ -1,0 +1,65 @@
+# Kiro Master Prompt — Build wanderAI for iPhone
+
+Create a production-quality native iPhone app named **wanderAI** using SwiftUI and Swift 6. Treat the files in `.kiro/steering/` as mandatory project guidance and create a Kiro spec from `.kiro/specs/wanderai-ios/requirements.md`, `design.md`, and `tasks.md`.
+
+## Product goal
+wanderAI imports structured trip plans from JSON, stores them locally, and turns them into an executable travel experience. The user must remain inside wanderAI when they tap **Start Navigation**. Build a full-screen Journey Mode powered by Mapbox Maps SDK for iOS and Mapbox Navigation SDK v3, wrapped behind app-owned protocols so SDK code does not leak into feature views.
+
+## Non-negotiable features
+1. Home screen with upcoming, draft, active, and past trips.
+2. Trip import from Files and pasted JSON.
+3. Strict validation against `schemas/trip-import.schema.json`, plus semantic and cross-reference validation.
+4. Import preview with precise JSON-path errors and warnings.
+5. Trip overview with Overview, Itinerary, Map, and Notes tabs.
+6. Daily plan timeline with stop state management.
+7. Destination detail pages with Highlights, Must Do, practical information, review summaries, and structured suitability.
+8. Suitability must explicitly cover dog friendliness, kid friendliness, older adults, mobility/accessibility, stroller use, wheelchair use, sensory needs, terrain, restrictions, and verification timestamp/source.
+9. In-app Journey Mode with Map, Itinerary, Spots, and Audio tabs.
+10. Route map must display current location, turn guidance, planned numbered stops, optional spots on the way, audio trigger points, ETA, distance, offline state, and route progress.
+11. Optional route spots may be suggested but may not change the route until the user confirms.
+12. GPS/route-triggered audio tours with transcript, autoplay setting, offline availability, and navigation-audio ducking.
+13. Arrival/Visit Mode with highlights, must-do checklist, suitability warnings, Complete Stop, Skip, and Navigate to Next.
+14. Offline trip package covering map tiles, routing tiles, trip data, selected media, and audio. Include size estimation, download, pause, resume, retry, update, remove, and coverage-gap warnings.
+15. Preference editor and JSON export validated against `schemas/preferences-export.schema.json`.
+16. JSON export through Preview, Copy, Save to Files, and iOS Share Sheet.
+17. Local-first persistence with SwiftData; no account required for MVP.
+18. Accessibility: Dynamic Type, VoiceOver, reduced motion, high contrast, landscape navigation, and minimum 44pt controls.
+19. Privacy: do not include precise location history, account identifiers, secrets, or private review text in preference export by default.
+20. Unit, integration, and UI tests for all critical flows.
+
+## Architecture requirements
+Use feature-oriented Clean MVVM with dependency injection. Implement and inject protocols for:
+- TripRepository
+- TripImporting
+- PreferenceExporting
+- JourneyNavigating
+- OfflineRegionManaging
+- AudioTourPlaying
+- LocationPermissionManaging
+- ReviewRepository
+
+Use Codable DTOs for JSON, domain models for business logic, and SwiftData entities for persistence. Do not expose DTOs, SwiftData entities, or Mapbox SDK types directly to SwiftUI views.
+
+Use async/await and typed errors. Avoid force unwraps. Add documentation comments to public types and preview data for major screens.
+
+## Delivery approach
+Work in the phases defined in `tasks.md`. Before implementing each phase:
+1. Read the relevant steering and spec documents.
+2. Produce or update the detailed task checklist.
+3. Implement the smallest complete vertical slice.
+4. Run tests and fix failures before proceeding.
+5. Do not silently substitute placeholder behavior for a requirement. When credentials or SDK setup prevent execution, create a protocol-backed mock, document the missing setup, and keep the production implementation scaffolded.
+
+## First vertical slice
+Start with:
+- app shell and design system
+- SwiftData trip library
+- DTOs matching both schemas
+- schema and semantic validation
+- bundled `sample-trip.json`
+- Home screen
+- Files/paste import
+- import preview
+- Trip Overview and Day Plan using sample data
+
+Do not begin Journey Mode until the import and local persistence tests pass.

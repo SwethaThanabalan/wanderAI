@@ -1,0 +1,104 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-07-14T23:00:00Z",
+  "generator": { "name": "wanderAI sample", "version": "1.0" },
+  "trip": {
+    "id": "5e53bb7a-cb90-44ae-aa56-01ef45040cec",
+    "title": "Olympic Peninsula Adventure",
+    "summary": "A scenic, dog-aware and mixed-age-friendly Olympic Peninsula road trip.",
+    "startDate": "2026-07-28",
+    "endDate": "2026-08-02",
+    "timeZone": "America/Los_Angeles",
+    "primaryRegion": "Olympic Peninsula, Washington",
+    "themes": ["scenic drives", "nature", "romantic", "dog friendly", "all ages"],
+    "travelerGroup": {
+      "adults": 2,
+      "children": [],
+      "olderAdults": 0,
+      "dogs": [{ "name": "Milo", "size": "small", "serviceAnimal": false }],
+      "accessibilityNeeds": [],
+      "sensoryNeeds": []
+    },
+    "destinations": [
+      {
+        "id": "eed36628-1754-4a2f-9510-d34416239441",
+        "name": "Lake Crescent",
+        "shortDescription": "A deep glacial lake with scenic shoreline stops and nearby walks.",
+        "coordinate": { "latitude": 48.0583, "longitude": -123.7972 },
+        "timeZone": "America/Los_Angeles",
+        "category": "lake",
+        "highlights": ["Glacial-blue water", "Scenic shoreline", "Picnic opportunities"],
+        "mustDo": ["Stop at a viewpoint", "Walk an allowed shoreline section", "Listen to the lake audio story"],
+        "recommendedVisitMinutes": 90,
+        "activityLevel": "easy",
+        "suitability": {
+          "dogs": {
+            "status": "suitableWithConstraints",
+            "evidence": ["Some developed areas permit leashed pets"],
+            "restrictions": ["Verify current park rules for each trail before visiting"],
+            "sourceLabel": "Imported planning note"
+          },
+          "kids": { "status": "suitable", "evidence": ["Short flexible visit"] },
+          "olderAdults": { "status": "suitableWithConstraints", "evidence": ["Scenic stops can require minimal walking"], "restrictions": ["Surface and parking distance vary"] },
+          "mobility": { "status": "unknown" }
+        },
+        "practicalInfo": {
+          "parkingNote": "Use designated parking only.",
+          "restroomNote": "Availability varies by developed area.",
+          "safetyNotes": ["Water is cold year-round", "Follow current park notices"]
+        },
+        "reviewSummary": { "averageRating": 4.8, "reviewCount": 325, "source": "Sample imported summary", "capturedAt": "2026-07-01T00:00:00Z" },
+        "media": []
+      }
+    ],
+    "routeSpots": [
+      {
+        "id": "f57be26c-063a-46b0-a38a-3657caf53270",
+        "name": "Lake Crescent Viewpoint",
+        "coordinate": { "latitude": 48.067, "longitude": -123.78 },
+        "category": "scenic",
+        "description": "A quick scenic stop shortly before the main destination.",
+        "suggestedStopMinutes": 10,
+        "maximumDetourMinutes": 5,
+        "destinationId": "eed36628-1754-4a2f-9510-d34416239441"
+      }
+    ],
+    "audioPoints": [
+      {
+        "id": "3e634984-b6c2-4439-86bc-25cb41dfb2ac",
+        "title": "How Lake Crescent Was Formed",
+        "coordinate": { "latitude": 48.065, "longitude": -123.77 },
+        "destinationId": "eed36628-1754-4a2f-9510-d34416239441",
+        "trigger": { "type": "distance", "radiusMeters": 500, "repeatable": false },
+        "transcript": "Lake Crescent is a deep glacial lake shaped by the region's geological history.",
+        "language": "en",
+        "durationSeconds": 45,
+        "offlineEligible": true
+      }
+    ],
+    "days": [
+      {
+        "id": "62d94398-f425-474f-8679-e18d9eb9210d",
+        "date": "2026-07-29",
+        "title": "Port Angeles to Lake Crescent",
+        "summary": "Scenic driving, flexible stops, and a relaxed lake visit.",
+        "items": [
+          {
+            "id": "66fb7869-cb41-4d15-80de-5bcad3182a55",
+            "type": "destination",
+            "title": "Visit Lake Crescent",
+            "destinationId": "eed36628-1754-4a2f-9510-d34416239441",
+            "order": 0,
+            "startTime": "14:00",
+            "durationMinutes": 90,
+            "flexible": true,
+            "routeSpotIds": ["f57be26c-063a-46b0-a38a-3657caf53270"],
+            "audioPointIds": ["3e634984-b6c2-4439-86bc-25cb41dfb2ac"]
+          }
+        ]
+      }
+    ],
+    "importantNotes": ["Download the trip before entering low-service areas."],
+    "emergencyInfo": { "localEmergencyNumber": "911", "notes": ["Follow posted park and road guidance."] }
+  }
+}

@@ -1,0 +1,285 @@
+{
+  "format": "wanderAI.trip",
+  "formatVersion": "1.0.0",
+  "generatedAt": "2026-07-15T18:00:00Z",
+  "trip": {
+    "id": "olympic-sample",
+    "name": "Olympic Peninsula Adventure",
+    "summary": "A two-day sample trip for testing trip overview and execution.",
+    "primaryDestination": "Olympic Peninsula, Washington",
+    "startDate": "2026-07-28",
+    "endDate": "2026-07-29",
+    "timeZone": "America/Los_Angeles",
+    "coverImage": {
+      "type": "asset",
+      "value": "olympic-cover",
+      "altText": "Lake and mountains in Olympic National Park"
+    },
+    "suitability": {
+      "dogFriendly": {
+        "status": "partial",
+        "details": "Dog access varies by destination."
+      },
+      "kidFriendly": {
+        "status": "yes",
+        "details": "Includes short, flexible scenic stops."
+      },
+      "olderAdultFriendly": {
+        "status": "partial",
+        "details": "Some areas are easier than trail-based stops."
+      },
+      "wheelchairAccessible": {
+        "status": "partial",
+        "details": "Accessibility varies by stop."
+      },
+      "strollerFriendly": {
+        "status": "partial",
+        "details": "Developed areas are generally easier."
+      }
+    },
+    "plannedDistanceMiles": 122,
+    "highlights": [
+      "Lake Crescent",
+      "Hoh Rain Forest",
+      "Ruby Beach"
+    ],
+    "days": [
+      {
+        "id": "day-1",
+        "dayNumber": 1,
+        "date": "2026-07-28",
+        "title": "Port Angeles to Lake Crescent",
+        "summary": "Begin at the waterfront and continue to Lake Crescent.",
+        "plannedDistanceMiles": 24,
+        "estimatedDrivingMinutes": 40,
+        "stops": [
+          {
+            "id": "port-angeles",
+            "sequence": 1,
+            "name": "Port Angeles Waterfront",
+            "category": "city",
+            "plannedTime": "09:00",
+            "estimatedDurationMinutes": 60,
+            "summary": "A relaxed waterfront start.",
+            "description": "Pick up supplies and enjoy a short walk.",
+            "history": "Port Angeles is a gateway to the Olympic Peninsula.",
+            "mapReference": {
+              "latitude": 48.1181,
+              "longitude": -123.4307,
+              "formattedAddress": "Port Angeles, WA",
+              "placeId": null,
+              "mapLabel": "Port Angeles Waterfront",
+              "pinStyle": "start"
+            },
+            "heroImage": {
+              "type": "asset",
+              "value": "port-angeles",
+              "altText": "Port Angeles waterfront"
+            },
+            "mustDo": [
+              "Walk the waterfront",
+              "Pick up supplies"
+            ],
+            "highlights": [
+              "Harbor views"
+            ],
+            "suitability": {
+              "dogFriendly": {
+                "status": "yes",
+                "details": "Leashed dogs can enjoy outdoor waterfront areas."
+              },
+              "kidFriendly": {
+                "status": "yes",
+                "details": "Easy walking and open views."
+              },
+              "olderAdultFriendly": {
+                "status": "yes",
+                "details": "Mostly flat."
+              },
+              "wheelchairAccessible": {
+                "status": "partial",
+                "details": "Varies by waterfront segment."
+              },
+              "strollerFriendly": {
+                "status": "yes",
+                "details": "Most paved areas are manageable."
+              }
+            },
+            "reviews": [],
+            "travelerTips": [
+              {
+                "id": "tip-pa-1",
+                "authorDisplayName": "Sample Traveler",
+                "authorType": "roadTripper",
+                "text": "Download anything you need before entering lower-service areas.",
+                "visitSeason": "summer",
+                "helpfulCount": 12,
+                "tags": [
+                  "connectivity",
+                  "supplies"
+                ]
+              }
+            ],
+            "tags": [
+              "waterfront",
+              "easy-walk"
+            ],
+            "community": {
+              "aggregateRating": 4.4,
+              "reviewCount": 125,
+              "popularityLabel": "Popular gateway stop",
+              "sourceLabel": "Sample imported data"
+            }
+          },
+          {
+            "id": "lake-crescent",
+            "sequence": 2,
+            "name": "Lake Crescent",
+            "category": "naturalAttraction",
+            "plannedTime": "11:00",
+            "estimatedDurationMinutes": 150,
+            "summary": "A deep glacial lake with mountain views.",
+            "description": "Enjoy the lodge area and shoreline.",
+            "history": "The lake was formed by glaciers.",
+            "mapReference": {
+              "latitude": 48.0587,
+              "longitude": -123.7898,
+              "formattedAddress": "Lake Crescent, Olympic National Park, WA",
+              "placeId": null,
+              "mapLabel": "Lake Crescent",
+              "pinStyle": "end"
+            },
+            "heroImage": {
+              "type": "asset",
+              "value": "lake-crescent-hero",
+              "altText": "Clear blue water at Lake Crescent"
+            },
+            "mustDo": [
+              "Visit the lodge shoreline"
+            ],
+            "highlights": [
+              "Lake Crescent Lodge",
+              "Waterfront viewpoint"
+            ],
+            "suitability": {
+              "dogFriendly": {
+                "status": "partial",
+                "details": "Developed areas may allow dogs; many trails do not."
+              },
+              "kidFriendly": {
+                "status": "yes",
+                "details": "Easy to enjoy near the lodge."
+              },
+              "olderAdultFriendly": {
+                "status": "yes",
+                "details": "Scenic views with limited walking."
+              },
+              "wheelchairAccessible": {
+                "status": "partial",
+                "details": "Some developed areas are accessible."
+              },
+              "strollerFriendly": {
+                "status": "partial",
+                "details": "Best near the lodge."
+              }
+            },
+            "reviews": [
+              {
+                "id": "review-lc-1",
+                "authorDisplayName": "Maya",
+                "authorType": "photographer",
+                "rating": 5,
+                "title": "Beautiful in the morning",
+                "text": "Early arrival made parking easier and the reflections were gorgeous.",
+                "visitSeason": "summer",
+                "helpfulCount": 18,
+                "source": "sample"
+              }
+            ],
+            "travelerTips": [
+              {
+                "id": "tip-lc-1",
+                "authorDisplayName": "Jordan",
+                "authorType": "dogTraveler",
+                "text": "Check trail-specific dog restrictions before leaving the developed area.",
+                "visitSeason": "summer",
+                "helpfulCount": 9,
+                "tags": [
+                  "dog-friendly",
+                  "restrictions"
+                ]
+              }
+            ],
+            "tags": [
+              "lake",
+              "photography",
+              "scenic"
+            ],
+            "community": {
+              "aggregateRating": 4.8,
+              "reviewCount": 842,
+              "popularityLabel": "Must-see scenic stop",
+              "sourceLabel": "Sample imported data"
+            }
+          }
+        ],
+        "routeHighlights": [
+          {
+            "id": "madison-falls",
+            "name": "Madison Falls",
+            "category": "scenicViewpoint",
+            "description": "A short optional waterfall stop.",
+            "sequenceAfterStopId": "port-angeles",
+            "mapReference": {
+              "latitude": 48.0456,
+              "longitude": -123.5883,
+              "formattedAddress": "Olympic Hot Springs Road, WA",
+              "placeId": null,
+              "mapLabel": "Madison Falls",
+              "pinStyle": "secondary"
+            },
+            "image": {
+              "type": "asset",
+              "value": "madison-falls",
+              "altText": "Madison Falls in a forest"
+            },
+            "estimatedDetourMinutes": 20,
+            "optional": true,
+            "suitability": {
+              "dogFriendly": {
+                "status": "unknown",
+                "details": "Verify current park rules."
+              },
+              "kidFriendly": {
+                "status": "yes",
+                "details": "Short walk."
+              },
+              "olderAdultFriendly": {
+                "status": "yes",
+                "details": "Short access."
+              },
+              "wheelchairAccessible": {
+                "status": "partial",
+                "details": "Conditions may vary."
+              },
+              "strollerFriendly": {
+                "status": "partial",
+                "details": "Conditions may vary."
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "community": {
+      "aggregateRating": 4.8,
+      "reviewCount": 320,
+      "popularityLabel": "Popular with scenic road trippers",
+      "sourceLabel": "Sample imported data"
+    },
+    "metadata": {
+      "isSample": true,
+      "notes": "Community values are sample data for P0 UI testing."
+    }
+  }
+}

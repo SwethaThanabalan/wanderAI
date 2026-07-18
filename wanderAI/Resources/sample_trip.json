@@ -1,0 +1,322 @@
+{
+  "format": "wanderAI.trip",
+  "formatVersion": "1.0.0",
+  "generatedAt": "2026-07-15T18:00:00Z",
+  "trip": {
+    "id": "olympic-sample",
+    "name": "Olympic Peninsula Adventure",
+    "summary": "A three-day scenic road trip through the Olympic Peninsula, exploring lakes, rain forests, and rugged coastline.",
+    "primaryDestination": "Olympic Peninsula, Washington",
+    "startDate": "2026-07-28",
+    "endDate": "2026-07-30",
+    "timeZone": "America/Los_Angeles",
+    "coverImage": {
+      "type": "asset",
+      "value": "olympic-cover",
+      "altText": "Lake and mountains in Olympic National Park"
+    },
+    "travelGroup": {
+      "adults": 2,
+      "children": 0,
+      "olderAdults": 0,
+      "pets": [
+        { "type": "dog", "name": "Ferro", "size": "small" }
+      ]
+    },
+    "suitability": {
+      "dogFriendly": { "status": "partial", "details": "Dog access varies by destination. Many developed areas allow leashed dogs." },
+      "kidFriendly": { "status": "yes", "details": "Includes short, flexible scenic stops suitable for all ages." },
+      "olderAdultFriendly": { "status": "partial", "details": "Some areas require trail walking; scenic overlooks are easier." },
+      "wheelchairAccessible": { "status": "partial", "details": "Accessibility varies by stop. Developed areas are generally accessible." },
+      "strollerFriendly": { "status": "partial", "details": "Best near lodges and developed viewpoints." }
+    },
+    "plannedDistanceMiles": 185,
+    "highlights": [
+      "Lake Crescent",
+      "Hoh Rain Forest",
+      "Ruby Beach",
+      "Sol Duc Falls"
+    ],
+    "days": [
+      {
+        "id": "day-1",
+        "dayNumber": 1,
+        "date": "2026-07-28",
+        "title": "Port Angeles to Lake Crescent",
+        "summary": "Begin at the waterfront and continue west to the stunning glacial lake.",
+        "plannedDistanceMiles": 24,
+        "estimatedDrivingMinutes": 40,
+        "stops": [
+          {
+            "id": "port-angeles",
+            "sequence": 1,
+            "name": "Port Angeles Waterfront",
+            "category": "city",
+            "plannedTime": "09:00",
+            "estimatedDurationMinutes": 60,
+            "summary": "A relaxed waterfront start to the trip.",
+            "description": "Pick up supplies, grab coffee, and enjoy a short walk along the harbor.",
+            "history": "Port Angeles has served as the gateway to the Olympic Peninsula since the 1800s.",
+            "mapReference": {
+              "latitude": 48.1181,
+              "longitude": -123.4307,
+              "formattedAddress": "Port Angeles, WA",
+              "mapLabel": "Port Angeles Waterfront",
+              "pinStyle": "start"
+            },
+            "heroImage": { "type": "asset", "value": "port-angeles", "altText": "Port Angeles waterfront" },
+            "mustDo": ["Walk the waterfront", "Pick up supplies"],
+            "highlights": ["Harbor views", "Local coffee shops"],
+            "suitability": {
+              "dogFriendly": { "status": "yes", "details": "Leashed dogs welcome on the waterfront." },
+              "kidFriendly": { "status": "yes", "details": "Easy flat walking with open views." },
+              "olderAdultFriendly": { "status": "yes", "details": "Mostly flat terrain." },
+              "wheelchairAccessible": { "status": "partial", "details": "Most of the waterfront path is paved." },
+              "strollerFriendly": { "status": "yes", "details": "Paved paths throughout." }
+            },
+            "reviews": [],
+            "travelerTips": [
+              {
+                "id": "tip-pa-1",
+                "authorDisplayName": "Sample Traveler",
+                "authorType": "roadTripper",
+                "text": "Download anything you need before entering lower-service areas west of here.",
+                "visitSeason": "summer",
+                "helpfulCount": 12,
+                "tags": ["connectivity", "supplies"]
+              }
+            ],
+            "tags": ["waterfront", "easy-walk", "supplies"],
+            "community": { "aggregateRating": 4.4, "reviewCount": 125, "popularityLabel": "Popular gateway stop", "sourceLabel": "Sample imported data" }
+          },
+          {
+            "id": "lake-crescent",
+            "sequence": 2,
+            "name": "Lake Crescent",
+            "category": "naturalAttraction",
+            "plannedTime": "11:00",
+            "estimatedDurationMinutes": 150,
+            "summary": "A deep glacial lake with stunning clarity and mountain views.",
+            "description": "Enjoy the lodge area, walk the shoreline, and take in the deep blue water surrounded by forested mountains.",
+            "history": "Lake Crescent was formed by glaciers thousands of years ago and later separated from the Elwha River system.",
+            "mapReference": {
+              "latitude": 48.0587,
+              "longitude": -123.7898,
+              "formattedAddress": "Lake Crescent, Olympic National Park, WA",
+              "mapLabel": "Lake Crescent",
+              "pinStyle": "primary"
+            },
+            "heroImage": { "type": "asset", "value": "lake-crescent-hero", "altText": "Clear blue water at Lake Crescent" },
+            "mustDo": ["Visit the lodge shoreline", "Walk to the viewpoint"],
+            "highlights": ["Lake Crescent Lodge", "Waterfront viewpoint", "Crystal-clear water"],
+            "suitability": {
+              "dogFriendly": { "status": "partial", "details": "Developed areas may allow leashed dogs; many trails do not." },
+              "kidFriendly": { "status": "yes", "details": "Easy to enjoy near the lodge area." },
+              "olderAdultFriendly": { "status": "yes", "details": "Scenic views with limited walking required." },
+              "wheelchairAccessible": { "status": "partial", "details": "Some developed areas are accessible." },
+              "strollerFriendly": { "status": "partial", "details": "Best near the lodge." }
+            },
+            "reviews": [
+              { "id": "review-lc-1", "authorDisplayName": "Maya", "authorType": "photographer", "rating": 5, "title": "Beautiful in the morning", "text": "Early arrival made parking easier and the reflections were gorgeous.", "visitSeason": "summer", "helpfulCount": 18, "source": "sample" }
+            ],
+            "travelerTips": [
+              { "id": "tip-lc-1", "authorDisplayName": "Jordan", "authorType": "dogTraveler", "text": "Check trail-specific dog restrictions before leaving the developed area.", "visitSeason": "summer", "helpfulCount": 9, "tags": ["dog-friendly", "restrictions"] }
+            ],
+            "tags": ["lake", "photography", "scenic"],
+            "community": { "aggregateRating": 4.8, "reviewCount": 842, "popularityLabel": "Must-see scenic stop", "sourceLabel": "Sample imported data" }
+          }
+        ],
+        "routeHighlights": [
+          {
+            "id": "madison-falls",
+            "name": "Madison Falls",
+            "category": "scenicViewpoint",
+            "description": "A short, easy waterfall stop just off the highway.",
+            "sequenceAfterStopId": "port-angeles",
+            "mapReference": { "latitude": 48.0456, "longitude": -123.5883, "formattedAddress": "Olympic Hot Springs Road, WA", "mapLabel": "Madison Falls", "pinStyle": "secondary" },
+            "image": { "type": "asset", "value": "madison-falls", "altText": "Madison Falls in a forest" },
+            "estimatedDetourMinutes": 20,
+            "optional": true,
+            "suitability": { "dogFriendly": { "status": "unknown", "details": "Verify current park rules." }, "kidFriendly": { "status": "yes", "details": "Short walk." }, "olderAdultFriendly": { "status": "yes", "details": "Short, easy access." }, "wheelchairAccessible": { "status": "partial", "details": "Conditions may vary." }, "strollerFriendly": { "status": "partial", "details": "Conditions may vary." } }
+          }
+        ]
+      },
+      {
+        "id": "day-2",
+        "dayNumber": 2,
+        "date": "2026-07-29",
+        "title": "Hoh Rain Forest & Sol Duc",
+        "summary": "Explore one of the largest temperate rain forests in the US and a spectacular waterfall.",
+        "plannedDistanceMiles": 95,
+        "estimatedDrivingMinutes": 150,
+        "stops": [
+          {
+            "id": "hoh-rainforest",
+            "sequence": 1,
+            "name": "Hoh Rain Forest",
+            "category": "nationalPark",
+            "plannedTime": "09:00",
+            "estimatedDurationMinutes": 180,
+            "summary": "Walk through towering moss-covered trees in a temperate rain forest.",
+            "description": "The Hoh Rain Forest is one of the finest examples of a temperate rain forest in the United States. Expect lush green canopies, moss-draped branches, and serene forest sounds.",
+            "history": "The Hoh River Valley receives over 12 feet of rain annually, creating one of the most unique ecosystems in North America.",
+            "mapReference": { "latitude": 47.8601, "longitude": -123.9346, "formattedAddress": "Hoh Rain Forest, Olympic National Park, WA", "mapLabel": "Hoh Rain Forest", "pinStyle": "primary" },
+            "heroImage": { "type": "asset", "value": "hoh-rainforest", "altText": "Moss-covered trees in Hoh Rain Forest" },
+            "mustDo": ["Walk the Hall of Mosses trail", "Visit the Visitor Center"],
+            "highlights": ["Hall of Mosses", "Spruce Nature Trail", "Roosevelt Elk sightings"],
+            "suitability": {
+              "dogFriendly": { "status": "no", "details": "Dogs are not permitted on Hoh Rain Forest trails." },
+              "kidFriendly": { "status": "yes", "details": "Hall of Mosses is a short, flat loop." },
+              "olderAdultFriendly": { "status": "partial", "details": "Hall of Mosses is manageable; longer trails are more demanding." },
+              "wheelchairAccessible": { "status": "partial", "details": "The mini trail near the Visitor Center is accessible." },
+              "strollerFriendly": { "status": "partial", "details": "Possible on the paved mini trail only." }
+            },
+            "reviews": [
+              { "id": "review-hoh-1", "authorDisplayName": "Alex", "authorType": "natureLover", "rating": 5, "title": "Magical forest", "text": "Feels like stepping into another world. The moss everywhere is incredible.", "visitSeason": "summer", "helpfulCount": 32, "source": "sample" }
+            ],
+            "travelerTips": [
+              { "id": "tip-hoh-1", "authorDisplayName": "Sam", "authorType": "dogTraveler", "text": "Dogs are NOT allowed on trails here. Plan for someone to stay with pets or skip this stop.", "visitSeason": "summer", "helpfulCount": 24, "tags": ["no-dogs", "important"] }
+            ],
+            "tags": ["rainforest", "hiking", "nature", "photography"],
+            "community": { "aggregateRating": 4.9, "reviewCount": 1250, "popularityLabel": "Top-rated national park experience", "sourceLabel": "Sample imported data" }
+          },
+          {
+            "id": "sol-duc-falls",
+            "sequence": 2,
+            "name": "Sol Duc Falls",
+            "category": "waterfall",
+            "plannedTime": "14:00",
+            "estimatedDurationMinutes": 90,
+            "summary": "A beautiful waterfall at the end of a forested trail.",
+            "description": "Sol Duc Falls is reached via a 0.8-mile trail through old-growth forest. The waterfall splits into three channels over a rocky ledge.",
+            "history": "Sol Duc means 'sparkling water' in the Quileute language.",
+            "mapReference": { "latitude": 47.9552, "longitude": -123.8366, "formattedAddress": "Sol Duc Falls Trail, Olympic National Park, WA", "mapLabel": "Sol Duc Falls", "pinStyle": "primary" },
+            "heroImage": { "type": "asset", "value": "sol-duc-falls", "altText": "Sol Duc Falls cascading over mossy rocks" },
+            "mustDo": ["Hike to the falls viewpoint", "Listen to the rushing water"],
+            "highlights": ["Three-channel waterfall", "Old-growth forest trail", "Bridge viewpoint"],
+            "suitability": {
+              "dogFriendly": { "status": "no", "details": "Dogs are not permitted on this trail." },
+              "kidFriendly": { "status": "yes", "details": "Short trail suitable for children who can walk 1.6 miles round trip." },
+              "olderAdultFriendly": { "status": "partial", "details": "Mostly flat with some uneven sections and tree roots." },
+              "wheelchairAccessible": { "status": "no", "details": "Trail is not wheelchair accessible." },
+              "strollerFriendly": { "status": "no", "details": "Unpaved trail with roots and uneven terrain." }
+            },
+            "reviews": [],
+            "travelerTips": [
+              { "id": "tip-sol-1", "authorDisplayName": "Chris", "authorType": "hiker", "text": "Go early or late to avoid the midday crowds at the falls.", "visitSeason": "summer", "helpfulCount": 15, "tags": ["timing", "crowds"] }
+            ],
+            "tags": ["waterfall", "hiking", "forest"],
+            "community": { "aggregateRating": 4.7, "reviewCount": 560, "popularityLabel": "Popular waterfall hike", "sourceLabel": "Sample imported data" }
+          }
+        ],
+        "routeHighlights": [
+          {
+            "id": "sol-duc-hotsprings",
+            "name": "Sol Duc Hot Springs Resort",
+            "category": "localAttraction",
+            "description": "Natural mineral hot springs with developed soaking pools.",
+            "sequenceAfterStopId": "sol-duc-falls",
+            "mapReference": { "latitude": 47.9685, "longitude": -123.8603, "formattedAddress": "Sol Duc Hot Springs Road, WA", "mapLabel": "Sol Duc Hot Springs", "pinStyle": "secondary" },
+            "image": { "type": "asset", "value": "sol-duc-hotsprings", "altText": "Hot springs pools surrounded by forest" },
+            "estimatedDetourMinutes": 10,
+            "optional": true,
+            "suitability": { "dogFriendly": { "status": "no", "details": "No pets in pool area." }, "kidFriendly": { "status": "yes", "details": "Family-friendly pools." }, "olderAdultFriendly": { "status": "yes", "details": "Warm soaking pools with easy access." }, "wheelchairAccessible": { "status": "partial", "details": "Resort has some accessible facilities." }, "strollerFriendly": { "status": "yes", "details": "Developed resort area." } }
+          }
+        ]
+      },
+      {
+        "id": "day-3",
+        "dayNumber": 3,
+        "date": "2026-07-30",
+        "title": "Ruby Beach & Coastal Drive",
+        "summary": "Experience the dramatic Pacific coastline with sea stacks, driftwood, and tide pools.",
+        "plannedDistanceMiles": 66,
+        "estimatedDrivingMinutes": 90,
+        "stops": [
+          {
+            "id": "ruby-beach",
+            "sequence": 1,
+            "name": "Ruby Beach",
+            "category": "beach",
+            "plannedTime": "09:30",
+            "estimatedDurationMinutes": 120,
+            "summary": "A dramatic stretch of coastline with sea stacks and driftwood.",
+            "description": "Ruby Beach features iconic sea stacks rising from the surf, massive driftwood logs, and tide pools teeming with life. The beach is accessed via a short trail from the parking area.",
+            "history": "Named for the reddish-colored crystals sometimes found in the sand, Ruby Beach is one of the most photographed beaches on the Olympic coast.",
+            "mapReference": { "latitude": 47.7108, "longitude": -124.4133, "formattedAddress": "Ruby Beach, Olympic National Park, WA", "mapLabel": "Ruby Beach", "pinStyle": "primary" },
+            "heroImage": { "type": "asset", "value": "ruby-beach", "altText": "Sea stacks at Ruby Beach during golden hour" },
+            "mustDo": ["Walk among the sea stacks", "Explore tide pools at low tide", "Photograph the driftwood"],
+            "highlights": ["Sea stacks", "Tide pools", "Driftwood formations", "Sunset views"],
+            "suitability": {
+              "dogFriendly": { "status": "yes", "details": "Dogs allowed on leash on Olympic coast beaches." },
+              "kidFriendly": { "status": "yes", "details": "Kids love the tide pools and driftwood climbing." },
+              "olderAdultFriendly": { "status": "partial", "details": "The trail to the beach is short but steep with uneven steps." },
+              "wheelchairAccessible": { "status": "no", "details": "Trail to beach is steep and sandy." },
+              "strollerFriendly": { "status": "no", "details": "Sandy trail not suitable for strollers." }
+            },
+            "reviews": [
+              { "id": "review-rb-1", "authorDisplayName": "Lena", "authorType": "photographer", "rating": 5, "title": "Best beach on the peninsula", "text": "Came for sunset and it was absolutely worth it. The sea stacks create incredible compositions.", "visitSeason": "summer", "helpfulCount": 27, "source": "sample" }
+            ],
+            "travelerTips": [
+              { "id": "tip-rb-1", "authorDisplayName": "Tara", "authorType": "dogTraveler", "text": "Ferro loved this beach! Keep dogs on leash and watch for sneaker waves.", "visitSeason": "summer", "helpfulCount": 11, "tags": ["dog-friendly", "safety"] }
+            ],
+            "tags": ["beach", "photography", "scenic", "dog-friendly"],
+            "community": { "aggregateRating": 4.8, "reviewCount": 980, "popularityLabel": "Iconic Pacific Northwest beach", "sourceLabel": "Sample imported data" }
+          },
+          {
+            "id": "kalaloch",
+            "sequence": 2,
+            "name": "Kalaloch Beach & Tree of Life",
+            "category": "naturalAttraction",
+            "plannedTime": "12:30",
+            "estimatedDurationMinutes": 60,
+            "summary": "Visit the famous tree clinging to an eroding cliff.",
+            "description": "The Tree of Life (Tree Root Cave) is a Sitka spruce that has survived despite the cliff beneath it eroding away, leaving its roots dramatically exposed.",
+            "history": "The tree has become one of the most photographed natural features on the Olympic coast.",
+            "mapReference": { "latitude": 47.6126, "longitude": -124.3742, "formattedAddress": "Kalaloch Beach, Olympic National Park, WA", "mapLabel": "Kalaloch Tree of Life", "pinStyle": "primary" },
+            "heroImage": { "type": "asset", "value": "kalaloch-tree", "altText": "Tree of Life with exposed roots over eroded cliff" },
+            "mustDo": ["See the Tree of Life", "Walk Kalaloch Beach"],
+            "highlights": ["Tree Root Cave", "Coastal views", "Easy beach access"],
+            "suitability": {
+              "dogFriendly": { "status": "yes", "details": "Dogs allowed on leash on the beach." },
+              "kidFriendly": { "status": "yes", "details": "Short walk to an amazing natural feature." },
+              "olderAdultFriendly": { "status": "partial", "details": "Short walk from parking but terrain can be uneven." },
+              "wheelchairAccessible": { "status": "no", "details": "Sandy and uneven terrain." },
+              "strollerFriendly": { "status": "no", "details": "Not suitable for strollers." }
+            },
+            "reviews": [],
+            "travelerTips": [
+              { "id": "tip-kal-1", "authorDisplayName": "Nate", "authorType": "roadTripper", "text": "Quick stop—15 minutes is enough to see the tree and snap photos.", "visitSeason": "summer", "helpfulCount": 8, "tags": ["quick-stop", "photography"] }
+            ],
+            "tags": ["coastal", "photography", "easy-walk"],
+            "community": { "aggregateRating": 4.5, "reviewCount": 320, "popularityLabel": "Famous natural attraction", "sourceLabel": "Sample imported data" }
+          }
+        ],
+        "routeHighlights": [
+          {
+            "id": "beach-4",
+            "name": "Beach 4 Tide Pools",
+            "category": "scenicViewpoint",
+            "description": "Excellent tide pools accessible at low tide, with sea stars and anemones.",
+            "sequenceAfterStopId": "ruby-beach",
+            "mapReference": { "latitude": 47.6875, "longitude": -124.4035, "formattedAddress": "Beach 4, Olympic National Park, WA", "mapLabel": "Beach 4 Tide Pools", "pinStyle": "secondary" },
+            "image": { "type": "asset", "value": "beach-4", "altText": "Colorful tide pools at Beach 4" },
+            "estimatedDetourMinutes": 30,
+            "optional": true,
+            "suitability": { "dogFriendly": { "status": "yes", "details": "Dogs allowed on leash." }, "kidFriendly": { "status": "yes", "details": "Kids love exploring tide pools." }, "olderAdultFriendly": { "status": "partial", "details": "Rocky, uneven terrain near tide pools." }, "wheelchairAccessible": { "status": "no", "details": "Not accessible." }, "strollerFriendly": { "status": "no", "details": "Rocky terrain." } }
+          }
+        ]
+      }
+    ],
+    "community": {
+      "aggregateRating": 4.8,
+      "reviewCount": 320,
+      "popularityLabel": "Popular with scenic road trippers",
+      "sourceLabel": "Sample imported data"
+    },
+    "metadata": {
+      "isSample": true,
+      "notes": "Community values are sample data for P0 UI testing."
+    }
+  }
+}

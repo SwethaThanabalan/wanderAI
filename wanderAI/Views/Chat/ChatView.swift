@@ -34,13 +34,15 @@ struct ChatView: View {
                     HStack(spacing: 12) {
                         if viewModel.canSaveTrip {
                             Button {
-                                Task { await viewModel.buildAndSaveTrip(context: modelContext) }
-                                showSaveConfirmation = true
+                                Task {
+                                    await viewModel.buildAndSaveTrip(context: modelContext)
+                                    showSaveConfirmation = viewModel.didSaveTrip
+                                }
                             } label: {
                                 Label("Save", systemImage: "square.and.arrow.down.fill")
                             }
                             .tint(.green)
-                            .disabled(viewModel.didSaveTrip)
+                            .disabled(viewModel.didSaveTrip || viewModel.isLoading)
                         }
 
                         Menu {

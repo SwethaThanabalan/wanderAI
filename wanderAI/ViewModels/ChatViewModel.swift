@@ -36,7 +36,11 @@ final class ChatViewModel {
     // MARK: - Computed
 
     var canSaveTrip: Bool {
-        tripContext.destination != nil || !(tripContext.existingStops ?? []).isEmpty || !acceptedUpdates.isEmpty
+        // Allow save if there's any conversation happening (user might want to save what they discussed)
+        tripContext.destination != nil ||
+        !(tripContext.existingStops ?? []).isEmpty ||
+        !acceptedUpdates.isEmpty ||
+        messages.contains(where: { $0.role == "assistant" })
     }
 
     var hasSession: Bool { sessionId != nil }
@@ -197,6 +201,11 @@ final class ChatViewModel {
 
     /// Builds the final trip from the session and saves locally.
     func buildAndSaveTrip(context: ModelContext) async {
+        // Extract destination from conversation if not set
+        if tripContext.destination == nil {
+            tripContext.destination = extractDestinationFromMessages()
+        }
+
         guard let sid = sessionId else {
             saveTripAsDraft(context: context)
             return
@@ -206,8 +215,6 @@ final class ChatViewModel {
 
         do {
             let tripData = try await apiService.buildTrip(sessionId: sid)
-
-            // Try to import the returned trip JSON
             let importService = TripImportService(context: context)
             let document = try importService.validate(data: tripData)
             try importService.importTrip(document: document, data: tripData)
@@ -218,6 +225,31 @@ final class ChatViewModel {
         }
 
         isLoading = false
+    }
+
+    /// Extracts a destination name from the conversation messages.
+    private func extractDestinationFromMessages() -> String? {
+        // Check suggested stops first
+        for msg in messages.reversed() {
+            if let stops = msg.suggestedStops, let first = stops.first {
+                return first.name
+            }
+        }
+        // Check user messages for location hints
+        for msg in messages where msg.role == "user" {
+            let text = msg.content.lowercased()
+            // Common patterns: "trip to X", "visit X", "going to X"
+            for prefix in ["trip to ", "visit ", "going to ", "plan for "] {
+                if let range = text.range(of: prefix) {
+                    let after = String(text[range.upperBound...])
+                    let destination = after.components(separatedBy: CharacterSet(charactersIn: ".,!?\n")).first ?? after
+                    if !destination.trimmingCharacters(in: .whitespaces).isEmpty {
+                        return destination.trimmingCharacters(in: .whitespaces).capitalized
+                    }
+                }
+            }
+        }
+        return "Untitled Trip"
     }
 
     /// Toggles a persona in multi-select mode.
@@ -282,12 +314,13 @@ final class ChatViewModel {
     // MARK: - Draft Save (fallback when build-trip unavailable)
 
     func saveTripAsDraft(context: ModelContext) {
-        let tripName = tripContext.destination ?? "Untitled Trip"
+        let tripName = tripContext.destination ?? extractDestinationFromMessages() ?? "Untitled Trip"
         let tripId = "draft-\(UUID().uuidString.prefix(8))"
 
         var stops: [StopPayload] = []
         var sequence = 1
 
+        // Pull from accepted updates first
         for update in acceptedUpdates {
             if let data = update.data, let name = data.name {
                 stops.append(StopPayload(
@@ -297,6 +330,26 @@ final class ChatViewModel {
                     summary: update.description, description: nil, history: nil,
                     mapReference: MapReference(latitude: 0, longitude: 0, formattedAddress: nil, placeId: nil, mapLabel: name, pinStyle: "primary"),
                     heroImage: nil, gallery: nil, mustDo: nil, highlights: nil,
+                    practicalInformation: nil, suitability: nil, reviews: nil,
+                    travelerTips: nil, tags: nil, community: nil
+                ))
+                sequence += 1
+            }
+        }
+
+        // If no accepted updates, pull suggested_stops from messages
+        if stops.isEmpty {
+            let allSuggested = messages.compactMap(\.suggestedStops).flatMap { $0 }
+            for stop in allSuggested {
+                let lat = stop.latitude ?? 0
+                let lng = stop.longitude ?? 0
+                stops.append(StopPayload(
+                    id: "stop-\(UUID().uuidString.prefix(8))", sequence: sequence, name: stop.name,
+                    category: stop.category, plannedTime: stop.time,
+                    estimatedDurationMinutes: stop.durationMinutes,
+                    summary: stop.description, description: nil, history: nil,
+                    mapReference: MapReference(latitude: lat, longitude: lng, formattedAddress: nil, placeId: nil, mapLabel: stop.name, pinStyle: sequence == 1 ? "start" : "primary"),
+                    heroImage: nil, gallery: nil, mustDo: nil, highlights: stop.highlights,
                     practicalInformation: nil, suitability: nil, reviews: nil,
                     travelerTips: nil, tags: nil, community: nil
                 ))

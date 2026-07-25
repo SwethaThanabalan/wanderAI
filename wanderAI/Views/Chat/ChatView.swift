@@ -5,10 +5,35 @@ import SwiftData
 /// Flow: Chat → Discover places → View board → Ask planner to arrange → Save trip.
 struct ChatView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var viewModel = ChatViewModel()
+    @State private var viewModel: ChatViewModel
     @State private var inputText = ""
     @State private var showSaveConfirmation = false
     @State private var showPlacesBoard = false
+
+    /// The trip being edited (if opened from a trip detail view).
+    private let editingTrip: StoredTrip?
+
+    /// Creates a fresh chat (from AI Assistant tab or home).
+    init() {
+        self._viewModel = State(initialValue: ChatViewModel())
+        self.editingTrip = nil
+    }
+
+    /// Creates a chat pre-loaded with an existing trip's context (from trip detail).
+    init(editingTrip: StoredTrip, tripPayload: TripPayload?) {
+        let stops = tripPayload?.days.flatMap(\.stops).map(\.name) ?? []
+        let context = ChatTripContext(
+            destination: tripPayload?.primaryDestination ?? editingTrip.primaryDestination,
+            region: tripPayload?.primaryDestination,
+            startDate: tripPayload?.startDate ?? editingTrip.startDate,
+            endDate: tripPayload?.endDate ?? editingTrip.endDate,
+            travelers: nil,
+            interests: nil,
+            existingStops: stops
+        )
+        self._viewModel = State(initialValue: ChatViewModel(tripContext: context))
+        self.editingTrip = editingTrip
+    }
     @State private var discoveredPlaces: [DiscoveredPlace] = []
     @State private var detailPlaceName: IdentifiableString?
     @FocusState private var isInputFocused: Bool
@@ -35,11 +60,15 @@ struct ChatView: View {
                         if viewModel.canSaveTrip {
                             Button {
                                 Task {
-                                    await viewModel.buildAndSaveTrip(context: modelContext)
+                                    if let trip = editingTrip {
+                                        await viewModel.updateExistingTrip(trip, context: modelContext)
+                                    } else {
+                                        await viewModel.buildAndSaveTrip(context: modelContext)
+                                    }
                                     showSaveConfirmation = viewModel.didSaveTrip
                                 }
                             } label: {
-                                Label("Save", systemImage: "square.and.arrow.down.fill")
+                                Label(editingTrip != nil ? "Update" : "Save", systemImage: "square.and.arrow.down.fill")
                             }
                             .tint(.green)
                             .disabled(viewModel.didSaveTrip || viewModel.isLoading)
@@ -68,7 +97,7 @@ struct ChatView: View {
             .alert("Trip Saved", isPresented: $showSaveConfirmation) {
                 Button("OK") {}
             } message: {
-                Text("Your trip has been saved as a draft in My Trips.")
+                Text(editingTrip != nil ? "Your trip has been updated." : "Your trip has been saved as a draft in My Trips.")
             }
             .sheet(isPresented: $showPlacesBoard) {
                 PlacesBoardView(

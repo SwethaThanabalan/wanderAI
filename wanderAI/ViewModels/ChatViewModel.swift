@@ -200,6 +200,141 @@ final class ChatViewModel {
     }
 
     /// Builds the final trip from the session and saves locally.
+    /// Updates an existing StoredTrip with new/modified stops from the chat session.
+    func updateExistingTrip(_ storedTrip: StoredTrip, context: ModelContext) async {
+        if tripContext.destination == nil {
+            tripContext.destination = extractDestinationFromMessages()
+        }
+
+        // Try server-side build first
+        if let sid = sessionId {
+            isLoading = true
+            do {
+                let tripData = try await apiService.buildTrip(sessionId: sid)
+                let importService = TripImportService(context: context)
+                let document = try importService.validate(data: tripData)
+
+                // Update existing trip's rawJSON and metadata
+                storedTrip.rawJSON = try JSONEncoder().encode(document)
+                storedTrip.name = document.trip.name.isEmpty ? storedTrip.name : document.trip.name
+                storedTrip.primaryDestination = document.trip.primaryDestination ?? storedTrip.primaryDestination
+                storedTrip.numberOfDays = document.trip.days.count
+                storedTrip.startDate = document.trip.startDate ?? storedTrip.startDate
+                storedTrip.endDate = document.trip.endDate ?? storedTrip.endDate
+                try? context.save()
+                didSaveTrip = true
+                isLoading = false
+                return
+            } catch {
+                // Fall through to local update
+            }
+            isLoading = false
+        }
+
+        // Fallback: merge new stops into the existing trip locally
+        updateTripLocally(storedTrip, context: context)
+    }
+
+    /// Merges accepted/suggested stops into an existing trip's rawJSON.
+    private func updateTripLocally(_ storedTrip: StoredTrip, context: ModelContext) {
+        // Decode existing trip
+        guard var document = try? JSONDecoder().decode(TripImportDocument.self, from: storedTrip.rawJSON) else {
+            // Can't decode — fall back to creating a draft
+            saveTripAsDraft(context: context)
+            return
+        }
+
+        // Collect new stops to add
+        var newStops: [StopPayload] = []
+        let existingStopNames = Set(document.trip.days.flatMap(\.stops).map { $0.name.lowercased() })
+        var nextSequence = (document.trip.days.last?.stops.last?.sequence ?? 0) + 1
+
+        // From accepted updates
+        for update in acceptedUpdates {
+            guard let data = update.data, let name = data.name else { continue }
+            guard !existingStopNames.contains(name.lowercased()) else { continue }
+            newStops.append(StopPayload(
+                id: "stop-\(UUID().uuidString.prefix(8))", sequence: nextSequence, name: name,
+                category: data.category, plannedTime: data.time,
+                estimatedDurationMinutes: parseDuration(data.duration),
+                summary: update.description, description: nil, history: nil,
+                mapReference: MapReference(latitude: 0, longitude: 0, formattedAddress: nil, placeId: nil, mapLabel: name, pinStyle: "primary"),
+                heroImage: nil, gallery: nil, mustDo: nil, highlights: nil,
+                practicalInformation: nil, suitability: nil, reviews: nil,
+                travelerTips: nil, tags: nil, community: nil
+            ))
+            nextSequence += 1
+        }
+
+        // From suggested stops in messages
+        let allSuggested = messages.compactMap(\.suggestedStops).flatMap { $0 }
+        for stop in allSuggested {
+            guard !existingStopNames.contains(stop.name.lowercased()) else { continue }
+            guard !newStops.contains(where: { $0.name.lowercased() == stop.name.lowercased() }) else { continue }
+            newStops.append(StopPayload(
+                id: "stop-\(UUID().uuidString.prefix(8))", sequence: nextSequence, name: stop.name,
+                category: stop.category, plannedTime: stop.time,
+                estimatedDurationMinutes: stop.durationMinutes,
+                summary: stop.description, description: nil, history: nil,
+                mapReference: MapReference(latitude: stop.latitude ?? 0, longitude: stop.longitude ?? 0, formattedAddress: nil, placeId: nil, mapLabel: stop.name, pinStyle: "primary"),
+                heroImage: nil, gallery: nil, mustDo: nil, highlights: stop.highlights,
+                practicalInformation: nil, suitability: nil, reviews: nil,
+                travelerTips: nil, tags: nil, community: nil
+            ))
+            nextSequence += 1
+        }
+
+        guard !newStops.isEmpty else {
+            didSaveTrip = true // Nothing new to add, but consider it "saved"
+            return
+        }
+
+        // Add new stops to the last day (or create a new day if needed)
+        var days = document.trip.days
+        if var lastDay = days.last {
+            let updatedStops = lastDay.stops + newStops
+            lastDay = DayPayload(
+                id: lastDay.id, dayNumber: lastDay.dayNumber, date: lastDay.date,
+                title: lastDay.title, summary: lastDay.summary,
+                plannedDistanceMiles: lastDay.plannedDistanceMiles,
+                estimatedDrivingMinutes: lastDay.estimatedDrivingMinutes,
+                stops: updatedStops, routeHighlights: lastDay.routeHighlights
+            )
+            days[days.count - 1] = lastDay
+        } else {
+            days.append(DayPayload(
+                id: "day-new", dayNumber: 1, date: nil, title: "Day 1",
+                summary: nil, plannedDistanceMiles: nil, estimatedDrivingMinutes: nil,
+                stops: newStops, routeHighlights: nil
+            ))
+        }
+
+        // Rebuild document
+        let updatedTrip = TripPayload(
+            id: document.trip.id, name: document.trip.name,
+            summary: document.trip.summary, primaryDestination: document.trip.primaryDestination,
+            startDate: document.trip.startDate, endDate: document.trip.endDate,
+            timeZone: document.trip.timeZone, coverImage: document.trip.coverImage,
+            travelGroup: document.trip.travelGroup, suitability: document.trip.suitability,
+            plannedDistanceMiles: document.trip.plannedDistanceMiles,
+            highlights: document.trip.highlights, days: days,
+            community: document.trip.community, metadata: document.trip.metadata
+        )
+        let updatedDoc = TripImportDocument(
+            format: document.format, formatVersion: document.formatVersion,
+            generatedAt: ISO8601DateFormatter().string(from: .now),
+            generator: document.generator, trip: updatedTrip
+        )
+
+        // Save back to the stored trip
+        if let encoded = try? JSONEncoder().encode(updatedDoc) {
+            storedTrip.rawJSON = encoded
+            storedTrip.numberOfDays = days.count
+            try? context.save()
+            didSaveTrip = true
+        }
+    }
+
     func buildAndSaveTrip(context: ModelContext) async {
         // Extract destination from conversation if not set
         if tripContext.destination == nil {

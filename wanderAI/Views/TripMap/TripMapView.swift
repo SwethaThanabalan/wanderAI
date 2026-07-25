@@ -284,10 +284,14 @@ struct TripDetailView: View {
 
     private var tripChatSheet: some View {
         NavigationStack {
-            ChatView()
+            ChatView(editingTrip: storedTrip, tripPayload: tripPayload)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button("Close") { showChat = false }
+                        Button("Close") {
+                            showChat = false
+                            // Reload trip in case it was updated
+                            loadTrip()
+                        }
                     }
                 }
         }

@@ -69,7 +69,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		08DDDC15E417FD04CE125D6E /* wanderAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = wanderAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		08DDDC15E417FD04CE125D6E /* wanderAI.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = wanderAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		148E24C0CF5C518B7F88BC9A /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		151B39ED672ABA2005174F24 /* ReviewRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewRepository.swift; sourceTree = "<group>"; };
 		165EB4DF93379F49AE1984CF /* AudioTourCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioTourCard.swift; sourceTree = "<group>"; };
@@ -371,6 +371,11 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					2364B9413C7B1C4703E8CE90 = {
+						DevelopmentTeam = "";
+					};
+				};
 			};
 			buildConfigurationList = 3E08A669D22E45C7A48D2147 /* Build configuration list for PBXProject "wanderAI" */;
 			developmentRegion = en;
@@ -477,7 +482,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 6M66BF44WP;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -489,7 +493,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.swe.wanderai.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wanderai.app;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -623,7 +627,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 6M66BF44WP;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -635,7 +638,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.swe.wanderai.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wanderai.app;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";

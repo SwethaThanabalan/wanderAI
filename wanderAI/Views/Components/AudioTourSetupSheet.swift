@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// Sheet for configuring audio tour duration and personas before submission.
+/// Supports all 6 WanderAI personas as narrators.
 struct AudioTourSetupSheet: View {
     let destinationName: String
     let onSubmit: (Int, [String]) -> Void
@@ -8,19 +9,11 @@ struct AudioTourSetupSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var durationMinutes: Double = 8
-    @State private var historianSelected = true
-    @State private var photographerSelected = false
+    @State private var selectedPersonaIds: Set<String> = ["historian"]
     @State private var showValidationError = false
 
-    private var selectedPersonas: [String] {
-        var personas: [String] = []
-        if historianSelected { personas.append("historian") }
-        if photographerSelected { personas.append("photographer") }
-        return personas
-    }
-
     private var isValid: Bool {
-        !selectedPersonas.isEmpty
+        !selectedPersonaIds.isEmpty
     }
 
     var body: some View {
@@ -52,7 +45,7 @@ struct AudioTourSetupSheet: View {
                     // Submit
                     Button {
                         if isValid {
-                            onSubmit(Int(durationMinutes), selectedPersonas)
+                            onSubmit(Int(durationMinutes), Array(selectedPersonaIds))
                         } else {
                             showValidationError = true
                         }
@@ -77,7 +70,7 @@ struct AudioTourSetupSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.large])
     }
 
     // MARK: - Duration
@@ -114,66 +107,112 @@ struct AudioTourSetupSheet: View {
 
     private var personasSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Personas")
+            Text("Narrators")
                 .font(.headline)
 
-            Text("Choose who narrates your tour.")
+            Text("Choose who narrates your tour. Select multiple for a richer experience.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            personaToggle(
-                title: "Historian",
-                subtitle: "Deep historical context and stories",
-                icon: "book.fill",
-                isSelected: $historianSelected
-            )
-
-            personaToggle(
-                title: "Photographer",
-                subtitle: "Visual insights and composition tips",
-                icon: "camera.fill",
-                isSelected: $photographerSelected
-            )
+            ForEach(allPersonaOptions, id: \.id) { persona in
+                personaToggle(persona: persona)
+            }
         }
-        .onChange(of: historianSelected) { _, _ in showValidationError = false }
-        .onChange(of: photographerSelected) { _, _ in showValidationError = false }
+        .onChange(of: selectedPersonaIds) { _, _ in showValidationError = false }
     }
 
-    private func personaToggle(title: String, subtitle: String, icon: String, isSelected: Binding<Bool>) -> some View {
-        Button {
-            isSelected.wrappedValue.toggle()
+    private func personaToggle(persona: AudioTourPersonaOption) -> some View {
+        let isSelected = selectedPersonaIds.contains(persona.id)
+
+        return Button {
+            if isSelected {
+                selectedPersonaIds.remove(persona.id)
+            } else {
+                selectedPersonaIds.insert(persona.id)
+            }
         } label: {
             HStack(spacing: 14) {
-                Image(systemName: icon)
-                    .font(.title3)
+                Text(persona.emoji)
+                    .font(.title2)
                     .frame(width: 36)
-                    .foregroundStyle(isSelected.wrappedValue ? .green : .secondary)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
+                    Text(persona.displayName)
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(.primary)
-                    Text(subtitle)
+                    Text(persona.subtitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
                 Spacer()
 
-                Image(systemName: isSelected.wrappedValue ? "checkmark.circle.fill" : "circle")
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundStyle(isSelected.wrappedValue ? .green : .secondary.opacity(0.5))
+                    .foregroundStyle(isSelected ? .green : .secondary.opacity(0.5))
             }
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected.wrappedValue ? Color.green.opacity(0.08) : Color(.systemGray6))
+                    .fill(isSelected ? Color.green.opacity(0.08) : Color(.systemGray6))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected.wrappedValue ? Color.green.opacity(0.3) : .clear, lineWidth: 1)
+                    .stroke(isSelected ? Color.green.opacity(0.3) : .clear, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
     }
+
+    // MARK: - Persona Data
+
+    private var allPersonaOptions: [AudioTourPersonaOption] {
+        [
+            AudioTourPersonaOption(
+                id: "historian",
+                displayName: "Prof. Raj the Historian",
+                emoji: "📜",
+                subtitle: "Deep historical context, dramatic storytelling"
+            ),
+            AudioTourPersonaOption(
+                id: "photographer",
+                displayName: "Maya the Photographer",
+                emoji: "📸",
+                subtitle: "Visual insights, composition tips, best light"
+            ),
+            AudioTourPersonaOption(
+                id: "geologist",
+                displayName: "Dr. Sam the Geologist",
+                emoji: "🪨",
+                subtitle: "Geological formations, landscape science"
+            ),
+            AudioTourPersonaOption(
+                id: "foodie",
+                displayName: "Priya the Foodie",
+                emoji: "🍜",
+                subtitle: "Local food scene, restaurants, markets"
+            ),
+            AudioTourPersonaOption(
+                id: "planner",
+                displayName: "Alex the Planner",
+                emoji: "🗺️",
+                subtitle: "Logistics, timing, practical tips"
+            ),
+            AudioTourPersonaOption(
+                id: "storyteller",
+                displayName: "Ghost the Storyteller",
+                emoji: "🌙",
+                subtitle: "Local legends, myths, atmospheric narratives"
+            ),
+        ]
+    }
+}
+
+// MARK: - Supporting Type
+
+private struct AudioTourPersonaOption: Identifiable {
+    let id: String
+    let displayName: String
+    let emoji: String
+    let subtitle: String
 }

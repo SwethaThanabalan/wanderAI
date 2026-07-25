@@ -118,7 +118,10 @@ struct StopDetailView: View {
     // MARK: - Header
 
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
+            // Hero image from Wikipedia (or gradient placeholder if none found)
+            LocationImageView(locationName: stop.name, height: 200, cornerRadius: 16)
+
             HStack {
                 ZStack {
                     Circle()

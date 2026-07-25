@@ -1,32 +1,23 @@
 import SwiftUI
 
-/// Beautiful destination card — hero image, state, title, date.
+/// Beautiful destination card — real location image with fallback gradient, title, date.
 struct TripCard: View {
     let trip: StoredTrip
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            // Hero image placeholder
-            RoundedRectangle(cornerRadius: 20)
-                .fill(
-                    LinearGradient(
-                        colors: gradientColors,
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(height: 220)
-                .overlay {
-                    Image(systemName: heroIcon)
-                        .font(.system(size: 56))
-                        .foregroundStyle(.white.opacity(0.2))
-                }
+            // Hero image from Wikipedia or gradient fallback
+            LocationImageView(
+                locationName: trip.primaryDestination ?? trip.name,
+                height: 220,
+                cornerRadius: 20
+            )
 
-            // Bottom gradient overlay
+            // Bottom gradient overlay for text legibility
             RoundedRectangle(cornerRadius: 20)
                 .fill(
                     LinearGradient(
-                        colors: [.clear, .black.opacity(0.7)],
+                        colors: [.clear, .black.opacity(0.75)],
                         startPoint: .center,
                         endPoint: .bottom
                     )
@@ -67,29 +58,10 @@ struct TripCard: View {
     // MARK: - Status
 
     private var statusLabel: String {
-        "Ready" // TODO: Check execution state
+        "Ready"
     }
 
     private var statusColor: Color {
         .green
-    }
-
-    // MARK: - Visual Variation
-
-    private var gradientColors: [Color] {
-        let sets: [[Color]] = [
-            [.green.opacity(0.6), .teal.opacity(0.8)],
-            [.blue.opacity(0.5), .indigo.opacity(0.7)],
-            [.orange.opacity(0.5), .pink.opacity(0.6)],
-            [.purple.opacity(0.5), .blue.opacity(0.7)]
-        ]
-        let index = abs(trip.tripId.hashValue) % sets.count
-        return sets[index]
-    }
-
-    private var heroIcon: String {
-        let icons = ["mountain.2.fill", "water.waves", "leaf.fill", "sun.horizon.fill"]
-        let index = abs(trip.tripId.hashValue) % icons.count
-        return icons[index]
     }
 }

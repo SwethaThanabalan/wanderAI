@@ -24,4 +24,37 @@ enum AppContainer {
     static func preferenceService(context: ModelContext) -> PreferenceService {
         PreferenceService(context: context)
     }
+
+    // MARK: - Audio Tour
+
+    static let audioTourAPIService = AudioTourAPIService()
+
+    static var audioTourDownloadService: AudioTourDownloadService {
+        AudioTourDownloadService(apiService: audioTourAPIService)
+    }
+
+    static func audioTourPlayerService() -> AudioTourPlayerService {
+        AudioTourPlayerService()
+    }
+
+    static func audioTourViewModel(
+        tripId: String,
+        stopId: String,
+        destinationName: String,
+        region: String,
+        visitDate: String,
+        context: ModelContext
+    ) -> AudioTourViewModel {
+        AudioTourViewModel(
+            tripId: tripId,
+            stopId: stopId,
+            destinationName: destinationName,
+            region: region,
+            visitDate: visitDate,
+            context: context,
+            apiService: audioTourAPIService,
+            downloadService: audioTourDownloadService,
+            playerService: audioTourPlayerService()
+        )
+    }
 }

@@ -1,12 +1,16 @@
 import SwiftUI
 import SwiftData
 
-/// Trip detail screen — lists destinations by day.
-/// Map is disabled until we confirm data is loading correctly.
+/// Trip detail screen — day-by-day plan with inline chat agent for updates.
 struct TripDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var tripPayload: TripPayload?
     @State private var loadError: String?
+    @State private var showChat = false
+    @State private var showExecution = false
+    @State private var executionStartDay = 0
+    @State private var isEditingName = false
+    @State private var editedName: String = ""
 
     let storedTrip: StoredTrip
 
@@ -21,8 +25,60 @@ struct TripDetailView: View {
                     ProgressView("Loading trip...")
                 }
             }
-            .navigationTitle(storedTrip.name)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    if isEditingName {
+                        TextField("Trip name", text: $editedName)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 200)
+                            .onSubmit { saveName() }
+                    } else {
+                        Button { startEditingName() } label: {
+                            HStack(spacing: 4) {
+                                Text(storedTrip.name)
+                                    .font(.headline)
+                                Image(systemName: "pencil")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    HStack(spacing: 12) {
+                        if isEditingName {
+                            Button("Done") { saveName() }
+                                .fontWeight(.semibold)
+                        } else {
+                            Button { showChat = true } label: {
+                                Image(systemName: "sparkles")
+                                    .foregroundStyle(.green)
+                            }
+                            Button {
+                                executionStartDay = 0
+                                showExecution = true
+                            } label: {
+                                Image(systemName: "play.fill")
+                                    .foregroundStyle(.green)
+                            }
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $showChat) {
+                tripChatSheet
+            }
+            .fullScreenCover(isPresented: $showExecution) {
+                if let trip = tripPayload {
+                    TripExecutionView(
+                        tripPayload: trip,
+                        storedTrip: storedTrip,
+                        startingDay: executionStartDay
+                    )
+                }
+            }
         }
         .onAppear { loadTrip() }
     }
@@ -33,41 +89,74 @@ struct TripDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 // Trip header
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(trip.name)
-                        .font(.title2.bold())
-
-                    if let dest = trip.primaryDestination {
-                        Text(dest)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    if let summary = trip.summary {
-                        Text(summary)
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    HStack(spacing: 16) {
-                        Label("\(trip.days.count) days", systemImage: "sun.horizon")
-                        Label("\(trip.days.flatMap(\.stops).count) stops", systemImage: "mappin.circle.fill")
-                        if let dist = trip.plannedDistanceMiles {
-                            Label("\(Int(dist)) mi", systemImage: "car.fill")
-                        }
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 4)
-                }
-                .padding(.horizontal)
+                tripHeader(trip)
 
                 // Days
                 ForEach(trip.days, id: \.id) { day in
                     daySection(day)
                 }
             }
-            .padding(.vertical)
+            .padding(.bottom, 40)
+        }
+    }
+
+    // MARK: - Trip Header
+
+    private func tripHeader(_ trip: TripPayload) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let dest = trip.primaryDestination {
+                LocationImageView(locationName: dest, height: 180, cornerRadius: 0)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                if let dest = trip.primaryDestination {
+                    Label(dest, systemImage: "mappin.circle.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let summary = trip.summary {
+                    Text(summary)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                // Stats
+                HStack(spacing: 16) {
+                    Label("\(trip.days.count) days", systemImage: "sun.horizon")
+                    Label("\(trip.days.flatMap(\.stops).count) stops", systemImage: "mappin")
+                    if let dist = trip.plannedDistanceMiles {
+                        Label("\(Int(dist)) mi", systemImage: "car.fill")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                // Chat agent button
+                Button { showChat = true } label: {
+                    Label("Ask AI to update this trip", systemImage: "sparkles")
+                        .font(.subheadline.weight(.medium))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                }
+                .buttonStyle(.bordered)
+                .tint(.green)
+                .padding(.top, 4)
+
+                // Start execution mode
+                Button {
+                    executionStartDay = 0
+                    showExecution = true
+                } label: {
+                    Label("Start Trip", systemImage: "play.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.green)
+            }
+            .padding(.horizontal, 16)
         }
     }
 
@@ -76,167 +165,148 @@ struct TripDetailView: View {
     private func daySection(_ day: DayPayload) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             // Day header
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
                     Text("Day \(day.dayNumber)")
-                        .font(.headline)
-                    Text(day.title)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                if let dist = day.plannedDistanceMiles {
-                    Text("\(Int(dist)) mi")
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.green.opacity(0.1))
-                        .clipShape(Capsule())
-                }
-            }
-            .padding(.horizontal)
-
-            // Stops
-            ForEach(day.stops, id: \.id) { stop in
-                stopCard(stop)
-            }
-
-            // Route highlights
-            if let highlights = day.routeHighlights, !highlights.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Along the Route")
-                        .font(.caption.bold())
-                        .foregroundStyle(.orange)
-                        .padding(.horizontal)
-
-                    ForEach(highlights, id: \.id) { hl in
-                        highlightRow(hl)
+                        .font(.title3.bold())
+                    if let date = day.date {
+                        Text(fmtDate(date))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color(.systemGray5))
+                            .clipShape(Capsule())
                     }
+                    Spacer()
                 }
+                Text(day.title)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 12) {
+                    if let driving = day.estimatedDrivingMinutes {
+                        Label("\(driving) min", systemImage: "car.fill")
+                    }
+                    if let dist = day.plannedDistanceMiles {
+                        Label("\(Int(dist)) mi", systemImage: "road.lanes")
+                    }
+                    Label("\(day.stops.count) stops", systemImage: "mappin")
+                }
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 16)
+
+            // Day map
+            DayMapView(stops: day.stops, height: 140)
+                .padding(.horizontal, 16)
+
+            // Stop cards
+            ForEach(day.stops, id: \.id) { stop in
+                NavigationLink {
+                    StopDetailView(
+                        stop: stop,
+                        tripId: storedTrip.tripId,
+                        region: tripPayload?.primaryDestination ?? "",
+                        visitDate: day.date ?? tripPayload?.startDate ?? ""
+                    )
+                } label: {
+                    stopCard(stop)
+                }
+                .buttonStyle(.plain)
             }
 
             Divider()
-                .padding(.horizontal)
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
         }
     }
 
     // MARK: - Stop Card
 
     private func stopCard(_ stop: StopPayload) -> some View {
-        HStack(alignment: .top, spacing: 14) {
-            // Sequence badge
-            ZStack {
-                Circle()
-                    .fill(.green)
-                    .frame(width: 36, height: 36)
-                Text("\(stop.sequence)")
-                    .font(.caption.bold())
-                    .foregroundStyle(.white)
-            }
+        HStack(spacing: 12) {
+            // Thumbnail
+            LocationImageView(locationName: stop.name, height: 60, cornerRadius: 10)
+                .frame(width: 60)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(stop.name)
-                    .font(.subheadline.weight(.semibold))
-
-                if let summary = stop.summary {
-                    Text(summary)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                HStack(spacing: 6) {
+                    ZStack {
+                        Circle().fill(.green).frame(width: 20, height: 20)
+                        Text("\(stop.sequence)")
+                            .font(.system(size: 9).bold())
+                            .foregroundStyle(.white)
+                    }
+                    Text(stop.name)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
                 }
 
                 HStack(spacing: 8) {
                     if let time = stop.plannedTime {
                         Label(time, systemImage: "clock")
                     }
-                    if let duration = stop.estimatedDurationMinutes {
-                        Label("\(duration) min", systemImage: "hourglass")
+                    if let dur = stop.estimatedDurationMinutes {
+                        Label("\(dur) min", systemImage: "hourglass")
                     }
-                    if let category = stop.category {
-                        Text(category)
+                    if let cat = stop.category {
+                        Text(cat.replacingOccurrences(of: "_", with: " "))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(Color.green.opacity(0.1))
+                            .background(Color.green.opacity(0.08))
                             .clipShape(Capsule())
                     }
                 }
                 .font(.caption2)
                 .foregroundStyle(.secondary)
 
-                // Suitability badges
-                if let suit = stop.suitability {
-                    suitabilityRow(suit)
-                }
-            }
-
-            Spacer()
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 6)
-    }
-
-    private func suitabilityRow(_ suit: SuitabilityInfo) -> some View {
-        HStack(spacing: 6) {
-            if let dog = suit.dogFriendly {
-                badge(icon: "pawprint.fill", status: dog.status)
-            }
-            if let kid = suit.kidFriendly {
-                badge(icon: "figure.and.child.holdinghands", status: kid.status)
-            }
-            if let older = suit.olderAdultFriendly {
-                badge(icon: "figure.walk", status: older.status)
-            }
-            if let wheel = suit.wheelchairAccessible {
-                badge(icon: "figure.roll", status: wheel.status)
-            }
-        }
-        .padding(.top, 2)
-    }
-
-    private func badge(icon: String, status: String) -> some View {
-        Image(systemName: icon)
-            .font(.system(size: 10))
-            .foregroundStyle(badgeColor(status))
-    }
-
-    private func badgeColor(_ status: String) -> Color {
-        switch status {
-        case "yes": return .green
-        case "partial": return .orange
-        case "no": return .red
-        default: return .gray
-        }
-    }
-
-    // MARK: - Route Highlight Row
-
-    private func highlightRow(_ hl: RouteHighlightPayload) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: "sparkles")
-                .font(.body)
-                .foregroundStyle(.orange)
-                .frame(width: 36)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(hl.name)
-                    .font(.caption.weight(.medium))
-                if let desc = hl.description {
-                    Text(desc)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                if let summary = stop.summary, !summary.isEmpty {
+                    Text(summary)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
                         .lineLimit(1)
                 }
             }
 
             Spacer()
 
-            if let detour = hl.estimatedDetourMinutes {
-                Text("+\(detour) min")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.quaternary)
         }
-        .padding(.horizontal)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 4)
+    }
+
+    // MARK: - Chat Sheet
+
+    private var tripChatSheet: some View {
+        NavigationStack {
+            ChatView()
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Close") { showChat = false }
+                    }
+                }
+        }
+    }
+
+    // MARK: - Name Editing
+
+    private func startEditingName() {
+        editedName = storedTrip.name
+        isEditingName = true
+    }
+
+    private func saveName() {
+        let trimmed = editedName.trimmingCharacters(in: .whitespaces)
+        if !trimmed.isEmpty && trimmed != storedTrip.name {
+            storedTrip.name = trimmed
+            try? modelContext.save()
+        }
+        isEditingName = false
     }
 
     // MARK: - Error
@@ -256,18 +326,26 @@ struct TripDetailView: View {
         }
     }
 
-    // MARK: - Load
+    // MARK: - Helpers
+
+    private func fmtDate(_ d: String) -> String {
+        let p = d.split(separator: "-")
+        guard p.count == 3, let m = Int(p[1]), let day = Int(p[2]) else { return d }
+        let ms = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+        guard m > 0, m < ms.count else { return d }
+        return "\(ms[m]) \(day)"
+    }
 
     private func loadTrip() {
-        print("[wanderAI] Loading trip: \(storedTrip.tripId), rawJSON size: \(storedTrip.rawJSON.count) bytes")
-
         do {
             let document = try JSONDecoder().decode(TripImportDocument.self, from: storedTrip.rawJSON)
             tripPayload = document.trip
-            print("[wanderAI] ✅ Decoded: \(document.trip.name), \(document.trip.days.count) days")
         } catch {
             loadError = error.localizedDescription
-            print("[wanderAI] ❌ Decode failed: \(error)")
         }
     }
 }
+
+// MARK: - StopPayload Identifiable for sheet
+
+extension StopPayload: Identifiable {}

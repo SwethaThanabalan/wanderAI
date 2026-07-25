@@ -13,7 +13,8 @@ struct WanderAIApp: App {
                 StopExecutionState.self,
                 LocalDestinationReview.self,
                 LocalTripReview.self,
-                StoredPreferences.self
+                StoredPreferences.self,
+                StoredAudioTour.self
             )
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
@@ -22,7 +23,7 @@ struct WanderAIApp: App {
 
     var body: some Scene {
         WindowGroup {
-            AppRouter()
+            SplashScreenView()
         }
         .modelContainer(modelContainer)
     }

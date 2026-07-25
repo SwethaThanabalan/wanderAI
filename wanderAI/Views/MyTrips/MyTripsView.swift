@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 /// Beautiful trip card gallery with delete and star functionality.
 struct MyTripsView: View {
@@ -7,6 +8,11 @@ struct MyTripsView: View {
     @Query(sort: \StoredTrip.importedAt, order: .reverse) private var trips: [StoredTrip]
 
     @State private var showImport = false
+    @State private var importError: String?
+    @State private var showImportError = false
+    @State private var showDuplicateAlert = false
+    @State private var pendingImportData: Data?
+    @State private var pendingImportDocument: TripImportDocument?
 
     var body: some View {
         NavigationStack {
@@ -37,9 +43,33 @@ struct MyTripsView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showImport) {
-                Text("Import Trip — Coming Soon")
-                    .presentationDetents([.medium])
+            .fileImporter(
+                isPresented: $showImport,
+                allowedContentTypes: [.json],
+                allowsMultipleSelection: false
+            ) { result in
+                handleFileImport(result)
+            }
+            .alert("Import Error", isPresented: $showImportError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(importError ?? "An unknown error occurred.")
+            }
+            .alert("Trip Already Exists", isPresented: $showDuplicateAlert) {
+                Button("Replace", role: .destructive) {
+                    importWithStrategy(.replace)
+                }
+                Button("Import as Copy") {
+                    importWithStrategy(.importAsCopy)
+                }
+                Button("Cancel", role: .cancel) {
+                    pendingImportData = nil
+                    pendingImportDocument = nil
+                }
+            } message: {
+                if let doc = pendingImportDocument {
+                    Text("\"\(doc.trip.name)\" already exists. What would you like to do?")
+                }
             }
         }
     }
@@ -145,6 +175,60 @@ struct MyTripsView: View {
     private func toggleStar(_ trip: StoredTrip) {
         trip.isSample.toggle() // Repurposing isSample as "starred" for now
         try? modelContext.save()
+    }
+
+    // MARK: - Import JSON
+
+    private func handleFileImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+
+            // Start accessing security-scoped resource
+            guard url.startAccessingSecurityScopedResource() else {
+                importError = "Unable to access the selected file."
+                showImportError = true
+                return
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
+
+            do {
+                let data = try Data(contentsOf: url)
+                let service = AppContainer.tripImportService(context: modelContext)
+                let document = try service.validate(data: data)
+
+                // Check for duplicates
+                if service.existingTrip(for: document.trip.id) != nil {
+                    pendingImportData = data
+                    pendingImportDocument = document
+                    showDuplicateAlert = true
+                } else {
+                    try service.importTrip(document: document, data: data)
+                }
+            } catch {
+                importError = error.localizedDescription
+                showImportError = true
+            }
+
+        case .failure(let error):
+            importError = error.localizedDescription
+            showImportError = true
+        }
+    }
+
+    private func importWithStrategy(_ strategy: TripImportService.DuplicateStrategy) {
+        guard let data = pendingImportData, let document = pendingImportDocument else { return }
+
+        let service = AppContainer.tripImportService(context: modelContext)
+        do {
+            try service.importTrip(document: document, data: data, strategy: strategy)
+        } catch {
+            importError = error.localizedDescription
+            showImportError = true
+        }
+
+        pendingImportData = nil
+        pendingImportDocument = nil
     }
 }
 

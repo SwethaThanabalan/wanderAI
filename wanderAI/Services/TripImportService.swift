@@ -41,26 +41,45 @@ final class TripImportService {
 
     /// Decodes and validates trip JSON data. Returns the parsed document.
     func validate(data: Data) throws -> TripImportDocument {
+        // Detect schema version by peeking at the JSON
         let document: TripImportDocument
-        do {
-            document = try JSONDecoder().decode(TripImportDocument.self, from: data)
-        } catch {
-            throw ImportError.invalidJSON(error.localizedDescription)
-        }
 
-        guard document.format == "wanderAI.trip" else {
-            throw ImportError.invalidFormat
-        }
+        if let peek = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           peek["schemaVersion"] != nil {
+            // V2 schema
+            let v2Root: TripImportV2Root
+            do {
+                v2Root = try JSONDecoder().decode(TripImportV2Root.self, from: data)
+            } catch {
+                throw ImportError.invalidJSON(error.localizedDescription)
+            }
 
-        guard document.formatVersion.hasPrefix("1.") else {
-            throw ImportError.unsupportedVersion(document.formatVersion)
+            guard v2Root.schemaVersion.hasPrefix("2.") else {
+                throw ImportError.unsupportedVersion(v2Root.schemaVersion)
+            }
+
+            document = v2Root.toV1Document()
+        } else {
+            // V1 schema
+            do {
+                document = try JSONDecoder().decode(TripImportDocument.self, from: data)
+            } catch {
+                throw ImportError.invalidJSON(error.localizedDescription)
+            }
+
+            guard document.format == "wanderAI.trip" else {
+                throw ImportError.invalidFormat
+            }
+
+            guard document.formatVersion.hasPrefix("1.") else {
+                throw ImportError.unsupportedVersion(document.formatVersion)
+            }
         }
 
         guard !document.trip.days.isEmpty else {
             throw ImportError.missingRequiredField("At least one day")
         }
 
-        // Validate stops have map references (enforced by Codable required field)
         for day in document.trip.days {
             guard !day.stops.isEmpty else {
                 throw ImportError.missingRequiredField("Day \"\(day.title)\" requires at least one stop")
@@ -95,6 +114,14 @@ final class TripImportService {
 
         let tripId = strategy == .importAsCopy ? "\(trip.id)-copy-\(UUID().uuidString.prefix(8))" : trip.id
 
+        // Re-encode the (possibly converted) document so rawJSON always decodes as TripImportDocument
+        let storedJSON: Data
+        if let reEncoded = try? JSONEncoder().encode(document) {
+            storedJSON = reEncoded
+        } else {
+            storedJSON = data
+        }
+
         let stored = StoredTrip(
             tripId: tripId,
             name: trip.name,
@@ -104,7 +131,7 @@ final class TripImportService {
             numberOfDays: trip.days.count,
             coverImageAsset: trip.coverImage?.value,
             isSample: document.trip.metadata?.isSample ?? false,
-            rawJSON: data
+            rawJSON: storedJSON
         )
 
         context.insert(stored)

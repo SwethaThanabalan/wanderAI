@@ -36,11 +36,24 @@ struct ChatView: View {
     }
     @State private var discoveredPlaces: [DiscoveredPlace] = []
     @State private var detailPlaceName: IdentifiableString?
+    @State private var showDestinationSwitch = false
     @FocusState private var isInputFocused: Bool
+
+    /// The conversation store injected from the environment or created locally.
+    @State private var conversationStore = AIConversationStore()
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                // Context banner (shows active destination)
+                ContextBannerView(
+                    destination: conversationStore.bannerText,
+                    currentStop: conversationStore.currentStopName,
+                    tripName: conversationStore.tripName,
+                    contextStatus: conversationStore.contextStatus,
+                    onTap: { /* Future: show destination picker */ }
+                )
+
                 personaPicker
 
                 // Places bar (when places exist)
@@ -99,6 +112,14 @@ struct ChatView: View {
             } message: {
                 Text(editingTrip != nil ? "Your trip has been updated." : "Your trip has been saved as a draft in My Trips.")
             }
+            .alert("Switch Destination?", isPresented: $showDestinationSwitch) {
+                Button("Switch") { viewModel.confirmDestinationChange() }
+                Button("Keep \(conversationStore.destination ?? "current")", role: .cancel) {
+                    viewModel.dismissDestinationChange()
+                }
+            } message: {
+                Text("Switch this conversation to \(viewModel.pendingDestinationChange ?? "a new destination")?")
+            }
             .sheet(isPresented: $showPlacesBoard) {
                 PlacesBoardView(
                     places: $discoveredPlaces,
@@ -117,7 +138,21 @@ struct ChatView: View {
                     alreadyAdded: discoveredPlaces.contains { $0.name == item.value }
                 )
             }
+            .onChange(of: viewModel.pendingDestinationChange) { _, newValue in
+                showDestinationSwitch = newValue != nil
+            }
             .task {
+                // Initialize conversation store
+                conversationStore.configure(modelContext: modelContext)
+                conversationStore.loadOrCreate(
+                    tripId: editingTrip?.tripId,
+                    tripName: editingTrip?.name,
+                    destination: viewModel.tripContext.destination,
+                    region: viewModel.tripContext.region,
+                    startDate: viewModel.tripContext.startDate,
+                    endDate: viewModel.tripContext.endDate
+                )
+                viewModel.attach(store: conversationStore)
                 await viewModel.loadPersonas()
             }
         }
@@ -154,7 +189,7 @@ struct ChatView: View {
     private var personaPicker: some View {
         VStack(spacing: 0) {
             // Mode toggle + chips
-            HStack(spacing: 0) {
+            HStack(spacing: 8) {
                 // Multi-mode toggle
                 Button {
                     withAnimation { viewModel.isMultiMode.toggle() }
@@ -177,18 +212,19 @@ struct ChatView: View {
                     .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .padding(.leading, 16)
+                .fixedSize()
 
-                // Persona chips
+                // Persona chips — proper leading padding so first chip isn't clipped
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(viewModel.personas) { persona in
                             personaChip(persona)
                         }
                     }
-                    .padding(.horizontal, 10)
+                    .padding(.trailing, 16)
                 }
             }
+            .padding(.leading, 16)
             .padding(.vertical, 10)
 
             // Multi-mode hint
@@ -254,6 +290,10 @@ struct ChatView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
             }
+            .scrollDismissesKeyboard(.interactively)
+            .onTapGesture {
+                isInputFocused = false
+            }
             .onChange(of: viewModel.messages.count) { _, _ in
                 if let last = viewModel.messages.last {
                     withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
@@ -314,26 +354,31 @@ struct ChatView: View {
     private func messageBubble(_ message: ChatMessage) -> some View {
         let isUser = message.role == "user"
         return VStack(alignment: isUser ? .trailing : .leading, spacing: 6) {
-            if !isUser, let persona = message.persona {
+            if !isUser, let identity = message.personaIdentity {
                 HStack(spacing: 4) {
-                    if let p = viewModel.personas.first(where: { $0.id == persona }) {
-                        Image(systemName: p.systemIcon).font(.caption2)
-                        Text(p.name).font(.caption2.weight(.medium))
-                    } else {
-                        Image(systemName: "sparkles").font(.caption2)
-                        Text(persona.capitalized).font(.caption2.weight(.medium))
-                    }
+                    Text(identity.emoji)
+                        .font(.caption)
+                    Text(identity.displayName)
+                        .font(.caption2.weight(.medium))
                 }
                 .foregroundStyle(.secondary)
             }
 
-            // Render markdown content
-            markdownText(message.content)
-                .font(.subheadline)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(RoundedRectangle(cornerRadius: 16).fill(isUser ? Color.green : Color(.systemGray5)))
-                .foregroundStyle(isUser ? .white : .primary)
+            // Render markdown content (full markdown for assistant, inline for user)
+            if isUser {
+                markdownText(message.content)
+                    .font(.subheadline)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(RoundedRectangle(cornerRadius: 16).fill(Color.green))
+                    .foregroundStyle(.white)
+            } else {
+                renderedMarkdown(message.content)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(RoundedRectangle(cornerRadius: 16).fill(Color(.systemGray5)))
+                    .foregroundStyle(.primary)
+            }
 
             if let suggestions = message.suggestions, !suggestions.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
@@ -600,9 +645,17 @@ struct ChatView: View {
     }
 
     private var typingIndicator: some View {
-        HStack(spacing: 4) {
-            ForEach(0..<3, id: \.self) { _ in
-                Circle().fill(Color.secondary).frame(width: 6, height: 6).opacity(0.5)
+        HStack(spacing: 8) {
+            HStack(spacing: 4) {
+                ForEach(0..<3, id: \.self) { _ in
+                    Circle().fill(Color.secondary).frame(width: 6, height: 6).opacity(0.5)
+                }
+            }
+            if let contextText = viewModel.loadingContextText {
+                Text(contextText)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 12)
@@ -624,6 +677,16 @@ struct ChatView: View {
                     .background(RoundedRectangle(cornerRadius: 20).fill(Color(.systemGray6)))
                     .focused($isInputFocused)
                     .onSubmit { Task { await sendMessage() } }
+
+                if isInputFocused {
+                    Button {
+                        isInputFocused = false
+                    } label: {
+                        Image(systemName: "keyboard.chevron.compact.down")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
+                }
 
                 Button {
                     Task { await sendMessage() }
@@ -678,6 +741,20 @@ struct ChatView: View {
 
     // MARK: - Markdown Rendering
 
+    /// Renders markdown content supporting headings, bold, lists, links, and paragraph spacing.
+    @ViewBuilder
+    private func renderedMarkdown(_ content: String) -> some View {
+        if let attributed = try? AttributedString(markdown: content, options: .init(interpretedSyntax: .full)) {
+            Text(attributed)
+                .font(.subheadline)
+                .tint(.green)
+        } else {
+            Text(content)
+                .font(.subheadline)
+        }
+    }
+
+    /// Legacy helper for inline-only contexts (kept for compatibility).
     private func markdownText(_ content: String) -> Text {
         if let attributed = try? AttributedString(markdown: content, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
             return Text(attributed)

@@ -29,6 +29,17 @@ enum AppContainer {
 
     static let audioTourAPIService = AudioTourAPIService()
 
+    // MARK: - Chat
+
+    static let chatAPIService = ChatAPIService()
+
+    /// Creates a conversation store configured with the given model context.
+    static func conversationStore(context: ModelContext) -> AIConversationStore {
+        let store = AIConversationStore()
+        store.configure(modelContext: context)
+        return store
+    }
+
     static var audioTourDownloadService: AudioTourDownloadService {
         AudioTourDownloadService(apiService: audioTourAPIService)
     }

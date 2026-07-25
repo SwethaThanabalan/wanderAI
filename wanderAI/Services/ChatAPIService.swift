@@ -55,9 +55,9 @@ final class ChatAPIService {
         return try JSONDecoder().decode(CreateSessionResponse.self, from: data)
     }
 
-    /// Sends a message within an existing session. Server maintains all context.
+    /// Sends a message within an existing session, including full conversation history.
     /// POST /v1/chat/sessions/{sessionId}/message
-    func sendSessionMessage(sessionId: String, message: String) async throws -> SessionMessageResponse {
+    func sendSessionMessage(sessionId: String, message: String, context: AIConversationContext? = nil, conversationHistory: [[String: String]]? = nil) async throws -> SessionMessageResponse {
         guard let url = URL(string: "\(baseURL)/v1/chat/sessions/\(sessionId)/message") else {
             throw ChatError.invalidURL
         }
@@ -67,7 +67,12 @@ final class ChatAPIService {
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.timeoutInterval = 90
 
-        let body = SessionMessageRequest(message: message)
+        let body = SessionMessageRequest(
+            message: message,
+            conversationId: context?.conversationId,
+            context: context,
+            conversationHistory: conversationHistory
+        )
         urlRequest.httpBody = try JSONEncoder().encode(body)
 
         let (data, response) = try await urlSession.data(for: urlRequest)
@@ -95,6 +100,7 @@ final class ChatAPIService {
 
     /// Builds the final trip JSON from all accepted stops in the session.
     /// POST /v1/chat/sessions/{sessionId}/build-trip
+    @available(*, deprecated, message: "Use generatePlan instead")
     func buildTrip(sessionId: String) async throws -> Data {
         guard let url = URL(string: "\(baseURL)/v1/chat/sessions/\(sessionId)/build-trip") else {
             throw ChatError.invalidURL
@@ -104,6 +110,30 @@ final class ChatAPIService {
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.timeoutInterval = 30
+
+        let (data, response) = try await urlSession.data(for: urlRequest)
+        try validateResponse(response, data: data)
+        return data
+    }
+
+    /// Generates a complete trip plan from all accepted stops in the session.
+    /// The server groups stops into days by proximity, web-searches each for details,
+    /// and returns the full wanderAI.trip format document.
+    /// POST /v1/chat/sessions/{sessionId}/generate-plan
+    ///
+    /// Error states:
+    /// - 400: No stops accepted yet
+    /// - 404: Session expired (2hr TTL) or not found
+    /// - 500: Service temporarily unavailable
+    func generatePlan(sessionId: String) async throws -> Data {
+        guard let url = URL(string: "\(baseURL)/v1/chat/sessions/\(sessionId)/generate-plan") else {
+            throw ChatError.invalidURL
+        }
+
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.timeoutInterval = 120 // Can take time due to web research per stop
 
         let (data, response) = try await urlSession.data(for: urlRequest)
         try validateResponse(response, data: data)
@@ -156,9 +186,20 @@ final class ChatAPIService {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw ChatError.serverError("No HTTP response")
         }
-        guard (200...299).contains(httpResponse.statusCode) else {
+
+        let statusCode = httpResponse.statusCode
+        guard (200...299).contains(statusCode) else {
             let body = String(data: data, encoding: .utf8) ?? "No body"
-            throw ChatError.serverError("Status \(httpResponse.statusCode): \(body)")
+            switch statusCode {
+            case 400:
+                throw ChatError.badRequest(body)
+            case 404:
+                throw ChatError.sessionExpired
+            case 500...599:
+                throw ChatError.serviceUnavailable(statusCode)
+            default:
+                throw ChatError.serverError("Status \(statusCode): \(body)")
+            }
         }
     }
 
@@ -168,12 +209,43 @@ final class ChatAPIService {
         case invalidURL
         case serverError(String)
         case decodingError
+        /// 400 — e.g. "no stops accepted yet" on generate-plan
+        case badRequest(String)
+        /// 404 — session expired (2hr TTL) or not found
+        case sessionExpired
+        /// 5xx — backend temporarily unavailable, safe to retry
+        case serviceUnavailable(Int)
 
         var errorDescription: String? {
             switch self {
-            case .invalidURL: return "Invalid URL"
-            case .serverError(let detail): return detail
-            case .decodingError: return "Failed to parse response"
+            case .invalidURL:
+                return "Invalid URL"
+            case .serverError(let detail):
+                return detail
+            case .decodingError:
+                return "Failed to parse response"
+            case .badRequest(let detail):
+                return detail
+            case .sessionExpired:
+                return "Session expired. Please start a new conversation."
+            case .serviceUnavailable(let code):
+                return "Service temporarily unavailable (HTTP \(code)). Please try again."
+            }
+        }
+
+        /// Whether the caller should prompt the user to retry.
+        var isRetryable: Bool {
+            switch self {
+            case .serviceUnavailable: return true
+            default: return false
+            }
+        }
+
+        /// Whether the session needs to be recreated.
+        var requiresNewSession: Bool {
+            switch self {
+            case .sessionExpired: return true
+            default: return false
             }
         }
     }

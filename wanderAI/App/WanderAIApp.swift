@@ -14,7 +14,8 @@ struct WanderAIApp: App {
                 LocalDestinationReview.self,
                 LocalTripReview.self,
                 StoredPreferences.self,
-                StoredAudioTour.self
+                StoredAudioTour.self,
+                StoredConversation.self
             )
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")

@@ -2,7 +2,8 @@ import Foundation
 import SwiftData
 
 /// Manages chat state using server-side sessions for persistent context.
-/// Flow: create session → send messages (no history needed) → accept stops → build trip.
+/// Integrates with AIConversationStore for local persistence and grounded context.
+/// Flow: create session → send messages with context → accept stops → generate plan.
 @MainActor
 @Observable
 final class ChatViewModel {
@@ -15,13 +16,24 @@ final class ChatViewModel {
     private(set) var didSaveTrip = false
     private(set) var sessionId: String?
 
+    /// Set to true when the backend signals a destination change, so the UI can confirm.
+    private(set) var pendingDestinationChange: String?
+
+    /// Contextual loading indicator text (e.g., "Maya is finding photo spots near North Cascades…").
+    private(set) var loadingContextText: String?
+
     var selectedPersona: ChatPersona?
     var selectedPersonas: Set<String> = []
     var isMultiMode = false
     var tripContext: ChatTripContext
+    var currentPlan: [CurrentPlanItem]?
+    var userPreferences: UserPreferences?
     private(set) var acceptedUpdates: [TripUpdate] = []
 
     private let apiService: ChatAPIService
+
+    /// The conversation store manages persistence and context assembly.
+    var conversationStore: AIConversationStore?
 
     // MARK: - Init
 
@@ -33,7 +45,38 @@ final class ChatViewModel {
         )
     }
 
+    /// Attaches the conversation store and restores persisted messages.
+    func attach(store: AIConversationStore) {
+        self.conversationStore = store
+        // Restore messages from persistence
+        let restored = store.loadPersistedMessages()
+        if !restored.isEmpty && messages.isEmpty {
+            messages = restored
+        }
+        // Sync destination from store to tripContext
+        if let dest = store.destination {
+            tripContext.destination = dest
+        }
+        if let region = store.region {
+            tripContext.region = region
+        }
+    }
+
     // MARK: - Computed
+
+    /// Whether this session is a group chat (multiple personas rotating).
+    /// When true, the UI should render avatar/emoji/name on every assistant message.
+    var isGroupChat: Bool {
+        if isMultiMode { return selectedPersonas.count > 1 }
+        // Session-based chats are always group chats — personas rotate server-side
+        return hasSession
+    }
+
+    /// The distinct personas that have spoken so far in this conversation.
+    var activePersonaIds: [String] {
+        let ids = messages.compactMap { $0.persona }
+        return Array(NSOrderedSet(array: ids)) as? [String] ?? Array(Set(ids))
+    }
 
     var canSaveTrip: Bool {
         // Allow save if there's any conversation happening (user might want to save what they discussed)
@@ -52,7 +95,12 @@ final class ChatViewModel {
         guard sessionId == nil else { return }
 
         let personaIds = isMultiMode ? Array(selectedPersonas) : [selectedPersona?.id ?? "planner"]
-        let request = CreateSessionRequest(personas: personaIds, tripContext: tripContext)
+        let request = CreateSessionRequest(
+            personas: personaIds,
+            tripContext: tripContext,
+            currentPlan: currentPlan,
+            userPreferences: userPreferences
+        )
 
         let response = try await apiService.createSession(request: request)
         sessionId = response.sessionId
@@ -73,6 +121,10 @@ final class ChatViewModel {
     }
 
     /// Sends a user message. Uses session if available, creates one if needed.
+    /// The API returns one persona response per message (round-robin rotation server-side).
+    /// Sends full AIConversationContext so the backend can ground follow-ups.
+    /// Also prepends destination context to the message text as a grounding hint
+    /// since the server may not fully utilize the structured context field yet.
     func sendMessage(_ text: String) async {
         guard !text.trimmingCharacters(in: .whitespaces).isEmpty else { return }
 
@@ -80,6 +132,21 @@ final class ChatViewModel {
         messages.append(userMessage)
         isLoading = true
         errorMessage = nil
+        pendingDestinationChange = nil
+
+        // Build contextual loading text
+        let personaName = selectedPersona?.identity.displayName.components(separatedBy: " the ").first ?? "AI"
+        let dest = conversationStore?.destination ?? tripContext.destination
+        if let dest {
+            loadingContextText = "\(personaName) is thinking about \(dest)…"
+        } else {
+            loadingContextText = "\(personaName) is thinking…"
+        }
+
+        // Build grounding prefix to inject into the message for context retention.
+        // This ensures the LLM sees the active destination even if the server
+        // doesn't fully parse the structured context field.
+        let groundedMessage = buildGroundedMessage(text)
 
         do {
             // Ensure we have a session
@@ -89,46 +156,96 @@ final class ChatViewModel {
                 throw ChatAPIService.ChatError.serverError("No session")
             }
 
-            // Send message — server has all context
-            let response = try await apiService.sendSessionMessage(sessionId: sid, message: text)
+            // Store the session ID in conversation store
+            conversationStore?.setServerSessionId(sid)
 
-            // Parse response into chat bubbles
-            let responseText = response.responseText
-            if !responseText.isEmpty {
-                let parsed = parseConsolidated(responseText)
-                let stops = response.suggestedStops
-                if parsed.count > 2 {
-                    addParsedMessage(parsed[0], suggestions: nil, suggestedStops: nil, updates: nil)
-                    addParsedMessage(parsed[parsed.count - 1], suggestions: response.combinedSuggestions, suggestedStops: stops, updates: response.combinedTripUpdates)
-                } else if parsed.isEmpty {
-                    let msg = ChatMessage(
-                        role: "assistant", content: responseText,
-                        persona: response.persona ?? selectedPersona?.id,
-                        suggestions: response.combinedSuggestions,
-                        suggestedStops: stops,
-                        tripUpdates: response.combinedTripUpdates
-                    )
-                    messages.append(msg)
-                } else {
-                    for (index, p) in parsed.enumerated() {
-                        let isLast = index == parsed.count - 1
-                        addParsedMessage(p,
-                            suggestions: isLast ? response.combinedSuggestions : nil,
-                            suggestedStops: isLast ? stops : nil,
-                            updates: isLast ? response.combinedTripUpdates : nil
-                        )
+            // Build structured context
+            let context = conversationStore?.buildContext(messages: messages)
+
+            // Build full conversation history for the backend
+            let history = buildConversationHistory()
+
+            // Send message with context + full history — server returns a single persona reply
+            let response = try await apiService.sendSessionMessage(sessionId: sid, message: groundedMessage, context: context, conversationHistory: history)
+
+            let replyText = response.responseText
+            if !replyText.isEmpty {
+                // If backend didn't return structured stops, extract them from the reply text
+                let stops = response.suggestedStops ?? extractStopsFromReply(replyText)
+
+                let msg = ChatMessage(
+                    role: "assistant",
+                    content: replyText,
+                    persona: response.persona ?? selectedPersona?.id,
+                    suggestedStops: stops.isEmpty ? nil : stops,
+                    tripUpdates: response.tripUpdates
+                )
+                messages.append(msg)
+            }
+
+            // Apply resolved context from backend
+            if let store = conversationStore {
+                let destinationChanged = store.applyResponse(response)
+                if destinationChanged, let newDest = response.resolvedContext?.destination {
+                    pendingDestinationChange = newDest
+                }
+                // Sync back to tripContext
+                if let d = store.destination { tripContext.destination = d }
+                if let r = store.region { tripContext.region = r }
+            }
+
+            // Auto-extract destination from first response or trip updates
+            if tripContext.destination == nil {
+                // Try from trip updates
+                if let updates = response.tripUpdates {
+                    for update in updates {
+                        if let name = update.data?.name {
+                            tripContext.destination = name
+                            conversationStore?.setDestination(name)
+                            break
+                        }
+                    }
+                }
+                // Try to extract from the reply text
+                if tripContext.destination == nil {
+                    if let extracted = extractDestinationFromMessages() {
+                        tripContext.destination = extracted
+                        conversationStore?.setDestination(extracted)
                     }
                 }
             }
 
-            // Auto-extract destination
-            if tripContext.destination == nil, let updates = response.combinedTripUpdates {
-                for update in updates {
-                    if let name = update.data?.name {
-                        tripContext.destination = name
-                        break
-                    }
+            // Persist conversation
+            conversationStore?.save(messages: messages)
+
+        } catch let error as ChatAPIService.ChatError where error.requiresNewSession {
+            // Session expired — reset and retry once with a fresh session
+            sessionId = nil
+            do {
+                try await ensureSession()
+                guard let sid = sessionId else { throw error }
+                conversationStore?.setServerSessionId(sid)
+                let context = conversationStore?.buildContext(messages: messages)
+                let history = buildConversationHistory()
+                let response = try await apiService.sendSessionMessage(sessionId: sid, message: groundedMessage, context: context, conversationHistory: history)
+                let replyText = response.responseText
+                if !replyText.isEmpty {
+                    let stops = response.suggestedStops ?? extractStopsFromReply(replyText)
+                    let msg = ChatMessage(
+                        role: "assistant",
+                        content: replyText,
+                        persona: response.persona ?? selectedPersona?.id,
+                        suggestedStops: stops.isEmpty ? nil : stops,
+                        tripUpdates: response.tripUpdates
+                    )
+                    messages.append(msg)
                 }
+                if let store = conversationStore {
+                    store.applyResponse(response)
+                    store.save(messages: messages)
+                }
+            } catch {
+                await sendMessageFallback(text)
             }
         } catch {
             // Fallback to stateless API
@@ -136,6 +253,147 @@ final class ChatViewModel {
         }
 
         isLoading = false
+        loadingContextText = nil
+    }
+
+    /// Builds a grounded message that includes destination/trip context inline
+    /// so the LLM never loses track of what location the user is asking about.
+    private func buildGroundedMessage(_ userText: String) -> String {
+        let dest = conversationStore?.destination ?? tripContext.destination
+        let stop = conversationStore?.currentStopName
+        let places = conversationStore?.collectedPlaces ?? tripContext.existingStops ?? []
+
+        // Only add grounding if we have context and the message is short/ambiguous
+        // (doesn't already mention a specific location)
+        guard let destination = dest else { return userText }
+
+        var contextHint = "[Context: Active destination is \(destination)"
+        if let region = conversationStore?.region ?? tripContext.region {
+            contextHint += ", \(region)"
+        }
+        if let currentStop = stop {
+            contextHint += ". Currently discussing: \(currentStop)"
+        }
+        if !places.isEmpty {
+            contextHint += ". Collected places: \(places.prefix(10).joined(separator: ", "))"
+        }
+        contextHint += ". Interpret follow-up questions relative to this destination.]"
+
+        return "\(contextHint)\n\n\(userText)"
+    }
+
+    /// Builds the full conversation history array to send with every message.
+    /// This ensures the backend always has complete context for follow-ups,
+    /// even if server-side session state is lost.
+    private func buildConversationHistory() -> [[String: String]] {
+        // Send all messages except the last one (which is the current user message
+        // being sent as the `message` field)
+        let historyMessages = messages.dropLast()
+        return historyMessages.map { msg in
+            var entry: [String: String] = ["role": msg.role, "content": msg.content]
+            if let persona = msg.persona {
+                entry["persona"] = persona
+            }
+            return entry
+        }
+    }
+
+    /// Extracts place names from the assistant's reply text when the backend
+    /// doesn't return structured `suggested_stops`.
+    /// Detects common patterns: numbered lists, bullet points, bold **names**, markdown headers.
+    private func extractStopsFromReply(_ text: String) -> [SuggestedStop] {
+        var stops: [SuggestedStop] = []
+        var seenNames = Set<String>()
+
+        let lines = text.components(separatedBy: "\n")
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { continue }
+
+            var placeName: String?
+            var description: String?
+
+            // Pattern 1: Numbered list "1. **Place Name** — description" or "1. Place Name - description"
+            if let match = trimmed.range(of: #"^\d+[\.\)]\s+"#, options: .regularExpression) {
+                let afterNumber = String(trimmed[match.upperBound...])
+                let extracted = extractBoldOrLeading(from: afterNumber)
+                placeName = extracted.name
+                description = extracted.description
+            }
+            // Pattern 2: Bullet point "- **Place Name** — description" or "• Place Name"
+            else if let match = trimmed.range(of: #"^[-•*]\s+"#, options: .regularExpression) {
+                let afterBullet = String(trimmed[match.upperBound...])
+                let extracted = extractBoldOrLeading(from: afterBullet)
+                placeName = extracted.name
+                description = extracted.description
+            }
+            // Pattern 3: Markdown header "### Place Name"
+            else if let match = trimmed.range(of: #"^#{1,4}\s+"#, options: .regularExpression) {
+                placeName = String(trimmed[match.upperBound...]).trimmingCharacters(in: .whitespaces)
+            }
+
+            // Validate and add
+            if let name = placeName,
+               !name.isEmpty,
+               name.count >= 3,
+               name.count <= 80,
+               !seenNames.contains(name.lowercased()),
+               !isGenericPhrase(name) {
+                seenNames.insert(name.lowercased())
+                stops.append(SuggestedStop(
+                    name: name,
+                    description: description,
+                    category: nil,
+                    latitude: nil,
+                    longitude: nil,
+                    day: nil,
+                    time: nil,
+                    durationMinutes: nil,
+                    highlights: nil,
+                    rating: nil,
+                    priceLevel: nil,
+                    address: nil,
+                    sourceUrl: nil,
+                    imageUrl: nil
+                ))
+            }
+        }
+
+        return stops
+    }
+
+    /// Extracts a place name from text, preferring **bold** names.
+    private func extractBoldOrLeading(from text: String) -> (name: String?, description: String?) {
+        // Try bold markdown: **Name** or __Name__
+        if let boldMatch = text.range(of: #"\*\*(.+?)\*\*"#, options: .regularExpression) {
+            let fullMatch = String(text[boldMatch])
+            let name = fullMatch.replacingOccurrences(of: "**", with: "").trimmingCharacters(in: .whitespaces)
+            let afterBold = String(text[boldMatch.upperBound...])
+                .trimmingCharacters(in: .whitespaces)
+                .trimmingCharacters(in: CharacterSet(charactersIn: "—–-:"))
+                .trimmingCharacters(in: .whitespaces)
+            return (name, afterBold.isEmpty ? nil : afterBold)
+        }
+
+        // No bold — take text before first separator (—, -, :, ()
+        let separators = CharacterSet(charactersIn: "—–:(")
+        let parts = text.components(separatedBy: separators)
+        if let first = parts.first {
+            let name = first.trimmingCharacters(in: .whitespaces)
+                .trimmingCharacters(in: CharacterSet(charactersIn: ".,!?"))
+            let rest = parts.dropFirst().joined(separator: " ").trimmingCharacters(in: .whitespaces)
+            return (name.isEmpty ? nil : name, rest.isEmpty ? nil : rest)
+        }
+
+        return (text.trimmingCharacters(in: .whitespaces), nil)
+    }
+
+    /// Filters out generic phrases that aren't actual place names.
+    private func isGenericPhrase(_ text: String) -> Bool {
+        let lower = text.lowercased()
+        let genericStarts = ["here's", "here are", "i'd suggest", "you could", "consider", "try", "also", "day ", "morning", "afternoon", "evening", "option", "tip", "note"]
+        return genericStarts.contains(where: { lower.hasPrefix($0) }) || lower.count < 3
     }
 
     /// Accepts a suggested stop — notifies the server and adds to local context.
@@ -157,12 +415,16 @@ final class ChatViewModel {
         )
         acceptedUpdates.append(update)
 
+        // Sync with conversation store
+        conversationStore?.addCollectedPlace(stop.name)
+
         // Notify server
         if let sid = sessionId {
             let request = AcceptStopRequest(
                 stopName: stop.name,
                 day: stop.day,
                 time: stop.time,
+                durationMinutes: stop.durationMinutes,
                 category: stop.category
             )
             Task { try? await apiService.acceptStop(sessionId: sid, request: request) }
@@ -174,9 +436,12 @@ final class ChatViewModel {
         if tripContext.existingStops == nil { tripContext.existingStops = [] }
         tripContext.existingStops?.append(suggestion)
 
+        // Sync with conversation store
+        conversationStore?.addCollectedPlace(suggestion)
+
         // Notify server (fire and forget)
         if let sid = sessionId {
-            let request = AcceptStopRequest(stopName: suggestion, day: nil, time: nil, category: nil)
+            let request = AcceptStopRequest(stopName: suggestion, day: nil, time: nil, durationMinutes: nil, category: nil)
             Task { try? await apiService.acceptStop(sessionId: sid, request: request) }
         }
     }
@@ -192,7 +457,8 @@ final class ChatViewModel {
             if let sid = sessionId {
                 let request = AcceptStopRequest(
                     stopName: name, day: update.data?.day,
-                    time: update.data?.time, category: update.data?.category
+                    time: update.data?.time, durationMinutes: parseDuration(update.data?.duration),
+                    category: update.data?.category
                 )
                 Task { try? await apiService.acceptStop(sessionId: sid, request: request) }
             }
@@ -206,11 +472,11 @@ final class ChatViewModel {
             tripContext.destination = extractDestinationFromMessages()
         }
 
-        // Try server-side build first
+        // Try server-side generate-plan first
         if let sid = sessionId {
             isLoading = true
             do {
-                let tripData = try await apiService.buildTrip(sessionId: sid)
+                let tripData = try await apiService.generatePlan(sessionId: sid)
                 let importService = TripImportService(context: context)
                 let document = try importService.validate(data: tripData)
 
@@ -225,6 +491,8 @@ final class ChatViewModel {
                 didSaveTrip = true
                 isLoading = false
                 return
+            } catch let error as ChatAPIService.ChatError {
+                handleSessionError(error)
             } catch {
                 // Fall through to local update
             }
@@ -239,8 +507,9 @@ final class ChatViewModel {
     private func updateTripLocally(_ storedTrip: StoredTrip, context: ModelContext) {
         // Decode existing trip
         guard var document = try? JSONDecoder().decode(TripImportDocument.self, from: storedTrip.rawJSON) else {
-            // Can't decode — fall back to creating a draft
-            saveTripAsDraft(context: context)
+            // Can't decode existing trip — mark as saved without creating a duplicate
+            didSaveTrip = true
+            errorMessage = "Could not parse the existing trip data."
             return
         }
 
@@ -349,11 +618,16 @@ final class ChatViewModel {
         isLoading = true
 
         do {
-            let tripData = try await apiService.buildTrip(sessionId: sid)
+            let tripData = try await apiService.generatePlan(sessionId: sid)
             let importService = TripImportService(context: context)
             let document = try importService.validate(data: tripData)
             try importService.importTrip(document: document, data: tripData)
             didSaveTrip = true
+        } catch let error as ChatAPIService.ChatError {
+            handleSessionError(error)
+            if !didSaveTrip {
+                saveTripAsDraft(context: context)
+            }
         } catch {
             // Fallback to local draft
             saveTripAsDraft(context: context)
@@ -388,14 +662,16 @@ final class ChatViewModel {
     }
 
     /// Toggles a persona in multi-select mode.
+    /// Does NOT reset destination context — only persona instructions change.
     func togglePersona(_ personaId: String) {
         if selectedPersonas.contains(personaId) {
             selectedPersonas.remove(personaId)
         } else {
             selectedPersonas.insert(personaId)
         }
-        // Reset session when personas change
+        // Reset server session to pick up new persona config, but preserve conversation context
         sessionId = nil
+        conversationStore?.selectedPersonaIds = Array(selectedPersonas)
     }
 
     /// Clears the conversation and resets session.
@@ -405,12 +681,55 @@ final class ChatViewModel {
         errorMessage = nil
         didSaveTrip = false
         sessionId = nil
+        pendingDestinationChange = nil
+        conversationStore?.clearConversation()
     }
 
     func setDestination(_ destination: String, region: String? = nil) {
         tripContext.destination = destination
         tripContext.region = region
         sessionId = nil // Reset session to pick up new context
+        conversationStore?.setDestination(destination, region: region)
+    }
+
+    /// Confirms the pending destination change (user tapped "Switch").
+    func confirmDestinationChange() {
+        guard let newDest = pendingDestinationChange else { return }
+        setDestination(newDest)
+        pendingDestinationChange = nil
+    }
+
+    /// Dismisses the pending destination change (user tapped "Keep current").
+    func dismissDestinationChange() {
+        pendingDestinationChange = nil
+    }
+
+    // MARK: - Session Error Handling
+
+    /// Surfaces structured session errors to the UI via errorMessage.
+    /// Resets sessionId when the session has expired so the next action creates a fresh one.
+    private func handleSessionError(_ error: ChatAPIService.ChatError) {
+        switch error {
+        case .sessionExpired:
+            errorMessage = "Session expired. Starting a new conversation."
+            sessionId = nil
+        case .badRequest(let detail):
+            if detail.lowercased().contains("no stops") || detail.lowercased().contains("accept") {
+                errorMessage = "Accept some suggestions first before generating your trip."
+            } else {
+                errorMessage = detail
+            }
+        case .serviceUnavailable:
+            errorMessage = "Service temporarily unavailable. Please try again."
+        default:
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Whether the last error is retryable (UI can show a retry button).
+    var canRetry: Bool {
+        guard let msg = errorMessage else { return false }
+        return msg.contains("try again") || msg.contains("unavailable")
     }
 
     // MARK: - Fallback (stateless)
@@ -418,24 +737,41 @@ final class ChatViewModel {
     private func sendMessageFallback(_ text: String) async {
         guard let persona = selectedPersona else { return }
 
+        // Include full conversation history for context retention
         let history = messages.dropLast().map { msg -> [String: String] in
             ["role": msg.role, "content": msg.content]
         }
 
-        let prompt = "\(text)\n\n(Be conversational — 2-3 sentences. End with a question.)"
+        // Ground the fallback message with destination context
+        let groundedMessage = buildGroundedMessage(text)
+
         let request = ChatRequest(
-            message: prompt, persona: persona.id,
+            message: groundedMessage, persona: persona.id,
             tripContext: tripContext, conversationHistory: Array(history)
         )
 
         do {
             let response = try await apiService.sendMessage(request: request)
+            // Extract stops from reply text if none provided structurally
+            let extractedStops = extractStopsFromReply(response.reply)
             let msg = ChatMessage(
                 role: "assistant", content: response.reply,
                 persona: response.persona ?? persona.id,
-                suggestions: response.suggestions, tripUpdates: response.tripUpdates
+                suggestions: response.suggestions,
+                suggestedStops: extractedStops.isEmpty ? nil : extractedStops,
+                tripUpdates: response.tripUpdates
             )
             messages.append(msg)
+
+            // Auto-extract destination if not set
+            if tripContext.destination == nil {
+                if let extracted = extractDestinationFromMessages() {
+                    tripContext.destination = extracted
+                    conversationStore?.setDestination(extracted)
+                }
+            }
+
+            conversationStore?.save(messages: messages)
         } catch {
             errorMessage = error.localizedDescription
             messages.append(ChatMessage(

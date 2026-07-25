@@ -313,6 +313,15 @@ struct ChatView: View {
                 .padding(.top, 4)
             }
 
+            if let stops = message.suggestedStops, !stops.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(stops) { stop in
+                        suggestedStopCard(stop)
+                    }
+                }
+                .padding(.top, 4)
+            }
+
             if let updates = message.tripUpdates, !updates.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(Array(updates.enumerated()), id: \.offset) { _, update in
@@ -433,6 +442,130 @@ struct ChatView: View {
         .padding(.vertical, 8)
         .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6).opacity(0.5)))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.blue.opacity(0.2), lineWidth: 1))
+    }
+
+    // MARK: - Suggested Stop Card
+
+    private func suggestedStopCard(_ stop: SuggestedStop) -> some View {
+        let alreadyAdded = discoveredPlaces.contains { $0.name == stop.name }
+        return VStack(alignment: .leading, spacing: 8) {
+            // Header with name + category
+            HStack(spacing: 8) {
+                Image(systemName: categoryIcon(stop.category))
+                    .font(.subheadline)
+                    .foregroundStyle(categoryColor(stop.category))
+                    .frame(width: 28, height: 28)
+                    .background(categoryColor(stop.category).opacity(0.12))
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(stop.name)
+                        .font(.subheadline.weight(.semibold))
+                    HStack(spacing: 6) {
+                        if let day = stop.day { Text("Day \(day)").font(.caption2) }
+                        if let time = stop.time { Text(time).font(.caption2) }
+                        if let dur = stop.durationMinutes { Text("\(dur) min").font(.caption2) }
+                        if let cat = stop.category {
+                            Text(cat).font(.caption2)
+                                .padding(.horizontal, 5).padding(.vertical, 1)
+                                .background(categoryColor(cat).opacity(0.1))
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+
+            // Description
+            if let desc = stop.description, !desc.isEmpty {
+                Text(desc)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            // Highlights
+            if let highlights = stop.highlights, !highlights.isEmpty {
+                HStack(spacing: 6) {
+                    ForEach(highlights.prefix(3), id: \.self) { hl in
+                        Text(hl)
+                            .font(.caption2)
+                            .padding(.horizontal, 6).padding(.vertical, 3)
+                            .background(Color(.systemGray5))
+                            .clipShape(Capsule())
+                    }
+                }
+            }
+
+            // Actions: Info + Add
+            HStack(spacing: 10) {
+                Button {
+                    detailPlaceName = IdentifiableString(stop.name)
+                } label: {
+                    Label("Details", systemImage: "info.circle")
+                        .font(.caption.weight(.medium))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.blue)
+
+                Spacer()
+
+                Button {
+                    guard !alreadyAdded else { return }
+                    viewModel.acceptSuggestedStop(stop)
+                    let place = DiscoveredPlace(
+                        name: stop.name, category: stop.category,
+                        day: stop.day, time: stop.time,
+                        duration: stop.durationMinutes.map { "\($0) min" },
+                        description: stop.description
+                    )
+                    withAnimation { discoveredPlaces.append(place) }
+                } label: {
+                    Text(alreadyAdded ? "Added" : "Add to Trip")
+                        .font(.caption.bold())
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(alreadyAdded ? Color(.systemGray5) : Color.green)
+                        .foregroundColor(alreadyAdded ? Color.secondary : Color.white)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(alreadyAdded)
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.systemBackground))
+                .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 1)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(alreadyAdded ? Color.green.opacity(0.3) : Color(.systemGray4).opacity(0.5), lineWidth: 1)
+        )
+    }
+
+    private func categoryIcon(_ category: String?) -> String {
+        switch category?.lowercased() {
+        case "hiking", "trail": return "figure.hiking"
+        case "food", "restaurant", "cafe", "coffee": return "fork.knife"
+        case "viewpoint", "photography": return "camera.fill"
+        case "museum", "culture", "history": return "building.columns.fill"
+        case "beach", "lake", "water": return "water.waves"
+        case "hotel", "stay": return "bed.double.fill"
+        default: return "mappin.circle.fill"
+        }
+    }
+
+    private func categoryColor(_ category: String?) -> Color {
+        switch category?.lowercased() {
+        case "hiking", "trail", "nature": return .green
+        case "food", "restaurant", "cafe", "coffee": return .orange
+        case "viewpoint", "photography": return .purple
+        case "museum", "culture", "history": return .brown
+        case "beach", "lake", "water": return .blue
+        case "hotel", "stay": return .indigo
+        default: return .teal
+        }
     }
 
     private var typingIndicator: some View {

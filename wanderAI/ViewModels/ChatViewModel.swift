@@ -92,15 +92,16 @@ final class ChatViewModel {
             let responseText = response.responseText
             if !responseText.isEmpty {
                 let parsed = parseConsolidated(responseText)
+                let stops = response.suggestedStops
                 if parsed.count > 2 {
-                    // Cap at 2 messages
-                    addParsedMessage(parsed[0], suggestions: nil, updates: nil)
-                    addParsedMessage(parsed[parsed.count - 1], suggestions: response.combinedSuggestions, updates: response.combinedTripUpdates)
+                    addParsedMessage(parsed[0], suggestions: nil, suggestedStops: nil, updates: nil)
+                    addParsedMessage(parsed[parsed.count - 1], suggestions: response.combinedSuggestions, suggestedStops: stops, updates: response.combinedTripUpdates)
                 } else if parsed.isEmpty {
                     let msg = ChatMessage(
                         role: "assistant", content: responseText,
                         persona: response.persona ?? selectedPersona?.id,
                         suggestions: response.combinedSuggestions,
+                        suggestedStops: stops,
                         tripUpdates: response.combinedTripUpdates
                     )
                     messages.append(msg)
@@ -109,6 +110,7 @@ final class ChatViewModel {
                         let isLast = index == parsed.count - 1
                         addParsedMessage(p,
                             suggestions: isLast ? response.combinedSuggestions : nil,
+                            suggestedStops: isLast ? stops : nil,
                             updates: isLast ? response.combinedTripUpdates : nil
                         )
                     }
@@ -130,6 +132,37 @@ final class ChatViewModel {
         }
 
         isLoading = false
+    }
+
+    /// Accepts a suggested stop — notifies the server and adds to local context.
+    func acceptSuggestedStop(_ stop: SuggestedStop) {
+        if tripContext.existingStops == nil { tripContext.existingStops = [] }
+        tripContext.existingStops?.append(stop.name)
+
+        // Track as an accepted update with full data
+        let update = TripUpdate(
+            action: "add_stop",
+            description: stop.description ?? stop.name,
+            data: TripUpdateData(
+                name: stop.name,
+                day: stop.day,
+                time: stop.time,
+                duration: stop.durationMinutes.map { "\($0) minutes" },
+                category: stop.category
+            )
+        )
+        acceptedUpdates.append(update)
+
+        // Notify server
+        if let sid = sessionId {
+            let request = AcceptStopRequest(
+                stopName: stop.name,
+                day: stop.day,
+                time: stop.time,
+                category: stop.category
+            )
+            Task { try? await apiService.acceptStop(sessionId: sid, request: request) }
+        }
     }
 
     /// Accepts a suggestion — tells the server to add it to trip context.
@@ -350,8 +383,8 @@ final class ChatViewModel {
         return results
     }
 
-    private func addParsedMessage(_ parsed: (persona: String, content: String), suggestions: [String]?, updates: [TripUpdate]?) {
-        let msg = ChatMessage(role: "assistant", content: parsed.content, persona: parsed.persona, suggestions: suggestions, tripUpdates: updates)
+    private func addParsedMessage(_ parsed: (persona: String, content: String), suggestions: [String]?, suggestedStops: [SuggestedStop]?, updates: [TripUpdate]?) {
+        let msg = ChatMessage(role: "assistant", content: parsed.content, persona: parsed.persona, suggestions: suggestions, suggestedStops: suggestedStops, tripUpdates: updates)
         messages.append(msg)
     }
 

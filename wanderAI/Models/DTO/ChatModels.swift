@@ -34,6 +34,7 @@ struct ChatMessage: Identifiable, Equatable {
     let content: String
     let persona: String?
     let suggestions: [String]?
+    let suggestedStops: [SuggestedStop]?
     let tripUpdates: [TripUpdate]?
     let timestamp: Date
 
@@ -43,6 +44,7 @@ struct ChatMessage: Identifiable, Equatable {
         content: String,
         persona: String? = nil,
         suggestions: [String]? = nil,
+        suggestedStops: [SuggestedStop]? = nil,
         tripUpdates: [TripUpdate]? = nil,
         timestamp: Date = .now
     ) {
@@ -51,6 +53,7 @@ struct ChatMessage: Identifiable, Equatable {
         self.content = content
         self.persona = persona
         self.suggestions = suggestions
+        self.suggestedStops = suggestedStops
         self.tripUpdates = tripUpdates
         self.timestamp = timestamp
     }
@@ -124,12 +127,14 @@ struct SessionMessageResponse: Decodable {
     let reply: String?
     let persona: String?
     let suggestions: [String]?
+    let suggestedStops: [SuggestedStop]?
     let tripUpdates: [TripUpdate]?
     let allSuggestions: [String]?
     let allTripUpdates: [TripUpdate]?
 
     enum CodingKeys: String, CodingKey {
         case consolidated, reply, persona, suggestions
+        case suggestedStops = "suggested_stops"
         case tripUpdates = "trip_updates"
         case allSuggestions = "all_suggestions"
         case allTripUpdates = "all_trip_updates"
@@ -150,6 +155,25 @@ struct SessionMessageResponse: Decodable {
     var combinedTripUpdates: [TripUpdate]? {
         let u = (allTripUpdates ?? []) + (tripUpdates ?? [])
         return u.isEmpty ? nil : u
+    }
+}
+
+/// A fully-formed stop suggestion from the backend with coordinates and metadata.
+struct SuggestedStop: Codable, Identifiable, Equatable {
+    var id: String { name }
+    let name: String
+    let day: Int?
+    let time: String?
+    let durationMinutes: Int?
+    let category: String?
+    let description: String?
+    let latitude: Double?
+    let longitude: Double?
+    let highlights: [String]?
+
+    enum CodingKeys: String, CodingKey {
+        case name, day, time, category, description, latitude, longitude, highlights
+        case durationMinutes = "duration_minutes"
     }
 }
 

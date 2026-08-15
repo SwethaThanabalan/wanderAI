@@ -497,6 +497,9 @@
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				UIBackgroundModes = (
+					audio,
+				);
 			};
 			name = Debug;
 		};
@@ -642,6 +645,9 @@
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				UIBackgroundModes = (
+					audio,
+				);
 			};
 			name = Release;
 		};

@@ -23,8 +23,6 @@ final class ChatViewModel {
     private(set) var loadingContextText: String?
 
     var selectedPersona: ChatPersona?
-    var selectedPersonas: Set<String> = []
-    var isMultiMode = false
     var tripContext: ChatTripContext
     var currentPlan: [CurrentPlanItem]?
     var userPreferences: UserPreferences?
@@ -64,20 +62,6 @@ final class ChatViewModel {
 
     // MARK: - Computed
 
-    /// Whether this session is a group chat (multiple personas rotating).
-    /// When true, the UI should render avatar/emoji/name on every assistant message.
-    var isGroupChat: Bool {
-        if isMultiMode { return selectedPersonas.count > 1 }
-        // Session-based chats are always group chats — personas rotate server-side
-        return hasSession
-    }
-
-    /// The distinct personas that have spoken so far in this conversation.
-    var activePersonaIds: [String] {
-        let ids = messages.compactMap { $0.persona }
-        return Array(NSOrderedSet(array: ids)) as? [String] ?? Array(Set(ids))
-    }
-
     var canSaveTrip: Bool {
         // Allow save if there's any conversation happening (user might want to save what they discussed)
         tripContext.destination != nil ||
@@ -94,7 +78,7 @@ final class ChatViewModel {
     private func ensureSession() async throws {
         guard sessionId == nil else { return }
 
-        let personaIds = isMultiMode ? Array(selectedPersonas) : [selectedPersona?.id ?? "planner"]
+        let personaIds = [selectedPersona?.id ?? "planner"]
         let request = CreateSessionRequest(
             personas: personaIds,
             tripContext: tripContext,
@@ -661,17 +645,12 @@ final class ChatViewModel {
         return "Untitled Trip"
     }
 
-    /// Toggles a persona in multi-select mode.
-    /// Does NOT reset destination context — only persona instructions change.
-    func togglePersona(_ personaId: String) {
-        if selectedPersonas.contains(personaId) {
-            selectedPersonas.remove(personaId)
-        } else {
-            selectedPersonas.insert(personaId)
-        }
-        // Reset server session to pick up new persona config, but preserve conversation context
+    /// Toggles the selected persona. Resets server session to pick up new persona config.
+    /// Does NOT reset destination context.
+    func selectPersona(_ persona: ChatPersona) {
+        selectedPersona = persona
         sessionId = nil
-        conversationStore?.selectedPersonaIds = Array(selectedPersonas)
+        conversationStore?.selectedPersonaIds = [persona.id]
     }
 
     /// Clears the conversation and resets session.

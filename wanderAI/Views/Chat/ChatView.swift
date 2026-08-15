@@ -188,77 +188,30 @@ struct ChatView: View {
 
     private var personaPicker: some View {
         VStack(spacing: 0) {
-            // Mode toggle + chips
-            HStack(spacing: 8) {
-                // Multi-mode toggle
-                Button {
-                    withAnimation { viewModel.isMultiMode.toggle() }
-                    if !viewModel.isMultiMode {
-                        viewModel.selectedPersonas.removeAll()
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(viewModel.personas) { persona in
+                        personaChip(persona)
                     }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: viewModel.isMultiMode ? "person.3.fill" : "person.fill")
-                            .font(.caption)
-                        if viewModel.isMultiMode {
-                            Text("\(viewModel.selectedPersonas.count)")
-                                .font(.caption2.bold())
-                        }
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .background(viewModel.isMultiMode ? Color.green : Color(.systemGray5))
-                    .foregroundStyle(viewModel.isMultiMode ? .white : .primary)
-                    .clipShape(Capsule())
                 }
-                .buttonStyle(.plain)
-                .fixedSize()
-
-                // Persona chips — proper leading padding so first chip isn't clipped
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(viewModel.personas) { persona in
-                            personaChip(persona)
-                        }
-                    }
-                    .padding(.trailing, 16)
-                }
+                .padding(.horizontal, 16)
             }
-            .padding(.leading, 16)
             .padding(.vertical, 10)
-
-            // Multi-mode hint
-            if viewModel.isMultiMode && viewModel.selectedPersonas.isEmpty {
-                Text("Tap multiple personas to get their unique perspectives")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .padding(.bottom, 6)
-            }
         }
         .background(Color(.systemBackground))
     }
 
     private func personaChip(_ persona: ChatPersona) -> some View {
-        let isSelected: Bool = viewModel.isMultiMode
-            ? viewModel.selectedPersonas.contains(persona.id)
-            : viewModel.selectedPersona?.id == persona.id
+        let isSelected = viewModel.selectedPersona?.id == persona.id
 
         return Button {
-            if viewModel.isMultiMode {
-                viewModel.togglePersona(persona.id)
-            } else {
-                viewModel.selectedPersona = persona
-            }
+            viewModel.selectedPersona = persona
         } label: {
             HStack(spacing: 5) {
-                Image(systemName: persona.systemIcon)
-                    .font(.caption2)
+                Text(persona.identity.emoji)
+                    .font(.caption)
                 Text(persona.name)
                     .font(.caption.weight(.medium))
-                if viewModel.isMultiMode && isSelected {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 8, weight: .bold))
-                }
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 7)

@@ -21,16 +21,28 @@ final class AudioTourPlayerService {
     private var player: AVAudioPlayer?
     private var timer: Timer?
     private var audioTitle: String = "Audio Tour"
+    private var nowPlayingSession: MPNowPlayingSession?
 
     /// Loads and plays an audio file from the given local URL.
     func play(url: URL, title: String? = nil) {
         if let title { audioTitle = title }
 
         do {
-            // Configure audio session for background playback
+            // Configure audio session for background + CarPlay playback
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .spokenAudio, options: [])
+            try session.setCategory(.playback, mode: .spokenAudio, policy: .longFormAudio, options: [])
             try session.setActive(true, options: .notifyOthersOnDeactivation)
+
+            // Become the active Now Playing app (shows in CarPlay + lock screen)
+            if nowPlayingSession == nil {
+                nowPlayingSession = MPNowPlayingSession(players: [])
+                nowPlayingSession?.becomeActiveIfPossible { [weak self] success in
+                    if !success {
+                        print("[wanderAI] ⚠️ Could not become active Now Playing session")
+                    }
+                    _ = self // retain
+                }
+            }
 
             if player?.url == url, playbackState == .paused {
                 // Resume
@@ -107,6 +119,36 @@ final class AudioTourPlayerService {
             return .success
         }
 
+        // Skip forward 15 seconds (prominent in CarPlay)
+        commandCenter.skipForwardCommand.isEnabled = true
+        commandCenter.skipForwardCommand.preferredIntervals = [15]
+        commandCenter.skipForwardCommand.addTarget { [weak self] event in
+            guard let event = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
+            Task { @MainActor in
+                guard let self, let player = self.player else { return }
+                let newTime = min(player.currentTime + event.interval, player.duration)
+                player.currentTime = newTime
+                self.currentTime = newTime
+                self.updateNowPlaying()
+            }
+            return .success
+        }
+
+        // Skip backward 15 seconds
+        commandCenter.skipBackwardCommand.isEnabled = true
+        commandCenter.skipBackwardCommand.preferredIntervals = [15]
+        commandCenter.skipBackwardCommand.addTarget { [weak self] event in
+            guard let event = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
+            Task { @MainActor in
+                guard let self, let player = self.player else { return }
+                let newTime = max(player.currentTime - event.interval, 0)
+                player.currentTime = newTime
+                self.currentTime = newTime
+                self.updateNowPlaying()
+            }
+            return .success
+        }
+
         commandCenter.changePlaybackPositionCommand.isEnabled = true
         commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in
             guard let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
@@ -126,6 +168,8 @@ final class AudioTourPlayerService {
         info[MPMediaItemPropertyPlaybackDuration] = duration
         info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = player?.currentTime ?? 0
         info[MPNowPlayingInfoPropertyPlaybackRate] = playbackState == .playing ? 1.0 : 0.0
+        info[MPNowPlayingInfoPropertyMediaType] = MPNowPlayingInfoMediaType.audio.rawValue
+        info[MPMediaItemPropertyAlbumTitle] = "WanderAI Audio Tour"
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 

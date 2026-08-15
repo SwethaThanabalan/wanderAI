@@ -100,21 +100,22 @@ final class AudioTourPlayerService {
 
         commandCenter.playCommand.isEnabled = true
         commandCenter.playCommand.addTarget { [weak self] _ in
+            guard let self else { return .commandFailed }
             Task { @MainActor in
-                guard let self, let player = self.player, !player.isPlaying else { return .commandFailed }
+                guard let player = self.player, !player.isPlaying else { return }
                 player.play()
                 self.playbackState = .playing
                 self.startTimer()
                 self.updateNowPlaying()
-                return .success
             }
             return .success
         }
 
         commandCenter.pauseCommand.isEnabled = true
         commandCenter.pauseCommand.addTarget { [weak self] _ in
+            guard let self else { return .commandFailed }
             Task { @MainActor in
-                self?.pause()
+                self.pause()
             }
             return .success
         }
@@ -123,9 +124,9 @@ final class AudioTourPlayerService {
         commandCenter.skipForwardCommand.isEnabled = true
         commandCenter.skipForwardCommand.preferredIntervals = [15]
         commandCenter.skipForwardCommand.addTarget { [weak self] event in
-            guard let event = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
+            guard let self, let event = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
             Task { @MainActor in
-                guard let self, let player = self.player else { return }
+                guard let player = self.player else { return }
                 let newTime = min(player.currentTime + event.interval, player.duration)
                 player.currentTime = newTime
                 self.currentTime = newTime
@@ -138,9 +139,9 @@ final class AudioTourPlayerService {
         commandCenter.skipBackwardCommand.isEnabled = true
         commandCenter.skipBackwardCommand.preferredIntervals = [15]
         commandCenter.skipBackwardCommand.addTarget { [weak self] event in
-            guard let event = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
+            guard let self, let event = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
             Task { @MainActor in
-                guard let self, let player = self.player else { return }
+                guard let player = self.player else { return }
                 let newTime = max(player.currentTime - event.interval, 0)
                 player.currentTime = newTime
                 self.currentTime = newTime
@@ -151,11 +152,11 @@ final class AudioTourPlayerService {
 
         commandCenter.changePlaybackPositionCommand.isEnabled = true
         commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in
-            guard let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
+            guard let self, let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
             Task { @MainActor in
-                self?.player?.currentTime = event.positionTime
-                self?.currentTime = event.positionTime
-                self?.updateNowPlaying()
+                self.player?.currentTime = event.positionTime
+                self.currentTime = event.positionTime
+                self.updateNowPlaying()
             }
             return .success
         }

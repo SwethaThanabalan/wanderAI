@@ -36,12 +36,6 @@ final class AudioTourPlayerService {
         }
     }
 
-    deinit {
-        if let observer = interruptionObserver {
-            NotificationCenter.default.removeObserver(observer)
-        }
-    }
-
     /// Loads and plays an audio file from the given local URL.
     func play(url: URL, title: String? = nil) {
         if let title { audioTitle = title }

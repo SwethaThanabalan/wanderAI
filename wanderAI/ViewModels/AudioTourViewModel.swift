@@ -205,6 +205,11 @@ final class AudioTourViewModel {
         playerService.restart(url: url)
     }
 
+    /// Skip forward 15 seconds.
+    func skipForward() {
+        playerService.skipForward(seconds: 15)
+    }
+
     // MARK: - Private
 
     private func loadExistingTour() {

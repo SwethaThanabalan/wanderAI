@@ -6,5 +6,7 @@
 	<array>
 		<string>audio</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>WanderAI needs microphone access to record your voice questions during audio tours.</string>
 </dict>
 </plist>

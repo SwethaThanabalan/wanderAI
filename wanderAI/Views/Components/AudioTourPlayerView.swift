@@ -1,12 +1,14 @@
 import SwiftUI
 
-/// Local audio playback controls: Play, Pause, Restart.
+/// Local audio playback controls: Play, Pause, Restart, and Ask a Question.
 struct AudioTourPlayerView: View {
     let viewModel: AudioTourViewModel
 
     private var playerService: AudioTourPlayerService {
         viewModel.playerService
     }
+
+    @State private var voiceQA = VoiceQAService()
 
     var body: some View {
         VStack(spacing: 16) {
@@ -70,11 +72,38 @@ struct AudioTourPlayerView: View {
                 }
                 .accessibilityLabel(playerService.playbackState == .playing ? "Pause" : "Play")
 
-                // Placeholder for symmetry
-                Image(systemName: "backward.end.fill")
-                    .font(.title3)
-                    .foregroundStyle(.clear)
+                // Skip forward 15s
+                Button {
+                    viewModel.skipForward()
+                } label: {
+                    Image(systemName: "goforward.15")
+                        .font(.title3)
+                        .foregroundStyle(.primary)
+                }
+                .accessibilityLabel("Skip forward 15 seconds")
             }
+
+            // Voice Q&A interrupt button
+            VoiceQAButton(
+                voiceQA: voiceQA,
+                persona: viewModel.audioTour?.selectedPersonas.first,
+                destination: viewModel.audioTour?.destinationName,
+                tripName: nil,
+                region: nil,
+                currentStop: viewModel.audioTour?.destinationName,
+                onWillRecord: {
+                    // Pause the tour while recording/answering
+                    if playerService.playbackState == .playing {
+                        viewModel.pause()
+                    }
+                },
+                onDismissed: {
+                    // Resume tour playback after Q&A is done
+                    if playerService.playbackState == .paused {
+                        viewModel.play()
+                    }
+                }
+            )
         }
         .padding(16)
         .background(

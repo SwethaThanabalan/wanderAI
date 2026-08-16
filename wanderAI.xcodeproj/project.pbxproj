@@ -35,6 +35,7 @@
 		5E483A35429E3E2E784CA11B /* StoredTrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EE32B381D1A2EA25B5F9DA8 /* StoredTrip.swift */; };
 		6BDAB62EF68B373DFF1ABE48 /* StoredAudioTour.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5978D6C094B7AAFE6B41B145 /* StoredAudioTour.swift */; };
 		6FBFF0A083AF68C1A1EDE2DB /* PreferenceExportDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 612AECF2B5E9C0B86BD89777 /* PreferenceExportDocument.swift */; };
+		7458C8E52E9C08FB261C6472 /* VoiceQAButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0616FF716ADB9DE8BFE8175B /* VoiceQAButton.swift */; };
 		758E753A14801CAF50E6D428 /* sample_trip.json in Resources */ = {isa = PBXBuildFile; fileRef = 8286C64A40EFADC3208A5BF6 /* sample_trip.json */; };
 		7A8FC6577CFCED6E92432D3A /* LocationImageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B974B067198D1610EBEF7815 /* LocationImageService.swift */; };
 		7D493A9F4B94802E96328A3A /* PreferenceEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A122C3F78C783AAD687897F /* PreferenceEditorSheet.swift */; };
@@ -47,6 +48,7 @@
 		9EDDBEF2B5F3D10009FD5F81 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74C64F99CEED16BD685ECE9 /* AppContainer.swift */; };
 		A03EF15D5FCDE9C3DE374C83 /* PreferenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E094D9024A82890366FCAC13 /* PreferenceService.swift */; };
 		A603F6CAA9839DC7983C2893 /* WanderAIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AD261E1401044E3A7A18151 /* WanderAIApp.swift */; };
+		A817F1530FAFADFBA9D32404 /* VoiceQAService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E0B14941556732AC9A0879 /* VoiceQAService.swift */; };
 		A88CE8F0253B3071B01C2D7C /* ExecutionStopCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5512114D86C092D8028D7A8A /* ExecutionStopCard.swift */; };
 		A929CD2EE6DB85B4EABC737C /* AIConversationContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 882CAA932B664EDCEB4F63CA /* AIConversationContext.swift */; };
 		AE0CB70D9E5AC89B9E28554D /* AudioTourDownloadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1720742A609881B207445AA /* AudioTourDownloadService.swift */; };
@@ -69,6 +71,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		01E0B14941556732AC9A0879 /* VoiceQAService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceQAService.swift; sourceTree = "<group>"; };
+		0616FF716ADB9DE8BFE8175B /* VoiceQAButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceQAButton.swift; sourceTree = "<group>"; };
 		08DDDC15E417FD04CE125D6E /* wanderAI.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = wanderAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		148E24C0CF5C518B7F88BC9A /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		151B39ED672ABA2005174F24 /* ReviewRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewRepository.swift; sourceTree = "<group>"; };
@@ -147,6 +151,7 @@
 				63B75E25035E728422C793E4 /* TripExecutionService.swift */,
 				43AAE84A1ED2BFA00378DD70 /* TripImportService.swift */,
 				1E2CC621DB71898720BE97F0 /* TripRepository.swift */,
+				01E0B14941556732AC9A0879 /* VoiceQAService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -330,6 +335,7 @@
 				FDE86BFA79DC3FF927073AD5 /* DayMapView.swift */,
 				5512114D86C092D8028D7A8A /* ExecutionStopCard.swift */,
 				8D7CE41B80B27745D7020073 /* StopReviewSheet.swift */,
+				0616FF716ADB9DE8BFE8175B /* VoiceQAButton.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -471,6 +477,8 @@
 				09054D6357ABC53284C2397C /* TripMapView.swift in Sources */,
 				025654866AFF3D381971E0EF /* TripMapViewModel.swift in Sources */,
 				17C10CADD1572932681EEF32 /* TripRepository.swift in Sources */,
+				7458C8E52E9C08FB261C6472 /* VoiceQAButton.swift in Sources */,
+				A817F1530FAFADFBA9D32404 /* VoiceQAService.swift in Sources */,
 				A603F6CAA9839DC7983C2893 /* WanderAIApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

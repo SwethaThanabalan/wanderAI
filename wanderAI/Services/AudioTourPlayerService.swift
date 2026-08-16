@@ -95,6 +95,15 @@ final class AudioTourPlayerService {
         play(url: url)
     }
 
+    /// Skips forward by the given number of seconds.
+    func skipForward(seconds: TimeInterval) {
+        guard let player else { return }
+        let newTime = min(player.currentTime + seconds, player.duration)
+        player.currentTime = newTime
+        currentTime = newTime
+        updateNowPlaying()
+    }
+
     // MARK: - Remote Commands (Lock Screen / Control Center)
 
     private func setupRemoteCommands() {

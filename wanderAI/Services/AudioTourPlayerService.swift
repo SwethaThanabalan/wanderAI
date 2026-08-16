@@ -21,7 +21,6 @@ final class AudioTourPlayerService {
     private var player: AVAudioPlayer?
     private var timer: Timer?
     private var audioTitle: String = "Audio Tour"
-    private var nowPlayingSession: MPNowPlayingSession?
 
     /// Loads and plays an audio file from the given local URL.
     func play(url: URL, title: String? = nil) {
@@ -30,19 +29,8 @@ final class AudioTourPlayerService {
         do {
             // Configure audio session for background + CarPlay playback
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .spokenAudio, policy: .longFormAudio, options: [])
+            try session.setCategory(.playback, mode: .spokenAudio, options: [])
             try session.setActive(true, options: .notifyOthersOnDeactivation)
-
-            // Become the active Now Playing app (shows in CarPlay + lock screen)
-            if nowPlayingSession == nil {
-                nowPlayingSession = MPNowPlayingSession(players: [])
-                nowPlayingSession?.becomeActiveIfPossible { [weak self] success in
-                    if !success {
-                        print("[wanderAI] ⚠️ Could not become active Now Playing session")
-                    }
-                    _ = self // retain
-                }
-            }
 
             if player?.url == url, playbackState == .paused {
                 // Resume

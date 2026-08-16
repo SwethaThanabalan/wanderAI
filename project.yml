@@ -20,7 +20,7 @@ targets:
       - path: wanderAI
     settings:
       base:
-        INFOPLIST_GENERATION_MODE: GeneratedFile
+        INFOPLIST_FILE: wanderAI/Info.plist
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: 1
         PRODUCT_BUNDLE_IDENTIFIER: com.wanderai.app
@@ -31,4 +31,3 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         SWIFT_EMIT_LOC_STRINGS: YES
-        UIBackgroundModes: [audio]

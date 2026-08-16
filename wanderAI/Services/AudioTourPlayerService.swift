@@ -21,6 +21,26 @@ final class AudioTourPlayerService {
     private var player: AVAudioPlayer?
     private var timer: Timer?
     private var audioTitle: String = "Audio Tour"
+    private var interruptionObserver: Any?
+
+    init() {
+        // Observe audio interruptions (phone calls, Siri, etc.)
+        interruptionObserver = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance(),
+            queue: .main
+        ) { [weak self] notification in
+            Task { @MainActor in
+                self?.handleInterruption(notification)
+            }
+        }
+    }
+
+    deinit {
+        if let observer = interruptionObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
 
     /// Loads and plays an audio file from the given local URL.
     func play(url: URL, title: String? = nil) {
@@ -188,5 +208,36 @@ final class AudioTourPlayerService {
     private func stopTimer() {
         timer?.invalidate()
         timer = nil
+    }
+
+    // MARK: - Interruption Handling
+
+    private func handleInterruption(_ notification: Notification) {
+        guard let info = notification.userInfo,
+              let typeValue = info[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
+
+        switch type {
+        case .began:
+            // Audio was interrupted (phone call, Siri, etc.)
+            if playbackState == .playing {
+                pause()
+            }
+        case .ended:
+            // Interruption ended — resume if appropriate
+            if let optionsValue = info[AVAudioSessionInterruptionOptionKey] as? UInt {
+                let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
+                if options.contains(.shouldResume), let player, playbackState == .paused {
+                    // Re-activate session and resume
+                    try? AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
+                    player.play()
+                    playbackState = .playing
+                    startTimer()
+                    updateNowPlaying()
+                }
+            }
+        @unknown default:
+            break
+        }
     }
 }

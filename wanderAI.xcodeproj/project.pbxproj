@@ -112,6 +112,7 @@
 		9E4F9D33A9BBAFF7B093FE27 /* PlacesBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacesBoardView.swift; sourceTree = "<group>"; };
 		9F2B29DD63147E221D4C2122 /* SampleTripService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleTripService.swift; sourceTree = "<group>"; };
 		A23E0E756298105601F165B7 /* ChatAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatAPIService.swift; sourceTree = "<group>"; };
+		ACC0F64898DA594C4EDED785 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		AFD239CBAC54A39861F3E18C /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		B0BC0C0EC68421DBA6CCB4F1 /* TripIntroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripIntroView.swift; sourceTree = "<group>"; };
 		B52D401D959F1C7F06A6D92F /* AudioTourPlayerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioTourPlayerService.swift; sourceTree = "<group>"; };
@@ -291,6 +292,7 @@
 			isa = PBXGroup;
 			children = (
 				BA2F98453DEADECB71E16782 /* Assets.xcassets */,
+				ACC0F64898DA594C4EDED785 /* Info.plist */,
 				7F2DA0A1E61DF511D406CBF8 /* App */,
 				6E96A8A4C00B4C818785246F /* MediaAssets */,
 				D0D88825D28BC0FAA5B33477 /* Models */,
@@ -483,7 +485,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_GENERATION_MODE = GeneratedFile;
+				INFOPLIST_FILE = wanderAI/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -497,9 +499,6 @@
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				UIBackgroundModes = (
-					audio,
-				);
 			};
 			name = Debug;
 		};
@@ -631,7 +630,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_GENERATION_MODE = GeneratedFile;
+				INFOPLIST_FILE = wanderAI/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -645,9 +644,6 @@
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				UIBackgroundModes = (
-					audio,
-				);
 			};
 			name = Release;
 		};
